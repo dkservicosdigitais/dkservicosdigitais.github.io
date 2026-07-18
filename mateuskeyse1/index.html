@@ -481,6 +481,11 @@ const DATA_CASAMENTO = new Date('2027-11-20T18:00:00-03:00');
 const CLOUDINARY_CLOUD = 'dotko9ym';
 const CLOUDINARY_PRESET = 'fotos_casamento';
 const MAX_FOTOS = 10;
+/* Endereço da função que avisa o Telegram.
+   - Se o site estiver hospedado na PRÓPRIA Vercel: deixe '/api/telegram'
+   - Se o site estiver no GitHub Pages: coloque o endereço completo da Vercel,
+     ex.: 'https://casamento-mk-api.vercel.app/api/telegram' */
+const API_TELEGRAM = '/api/telegram';
 
 /* ================== ABERTURA + MÚSICA ================== */
 const abertura = document.getElementById('abertura');
@@ -646,7 +651,7 @@ btnEnviar.addEventListener('click', async ()=>{
     convStatus.textContent = 'Avisando os noivos… 💌';
     let avisou = false;
     try{
-      const resp = await fetch('/api/telegram', {
+      const resp = await fetch(API_TELEGRAM, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           nome: document.getElementById('convNome').value.trim(),
