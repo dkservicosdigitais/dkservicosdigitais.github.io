@@ -456,10 +456,10 @@ footer .flor{display:block;margin-top:22px;color:var(--verde-claro);font-size:1r
     <input type="text" id="convNome" placeholder="Como você se chama?" maxlength="60">
     <label for="convMsg">Mensagem aos noivos (opcional)</label>
     <textarea id="convMsg" rows="2" placeholder="Deixe um recadinho carinhoso" maxlength="500"></textarea>
-    <label>Suas fotos</label>
+    <label>Suas fotos e vídeos</label>
     <div class="arquivo-area" id="areaArquivo">
-      📷 Toque aqui para escolher as fotos<br><small style="opacity:.75">Até 10 fotos por envio · JPG, PNG ou WebP</small>
-      <input type="file" id="convFotos" accept="image/jpeg,image/png,image/webp" multiple>
+      📷🎬 Toque aqui para escolher fotos ou vídeos<br><small style="opacity:.75">Até 10 arquivos por envio · Fotos (JPG, PNG, WebP) e vídeos (MP4, MOV, WebM) de até 100 MB</small>
+      <input type="file" id="convFotos" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" multiple>
     </div>
     <div class="previas" id="previas"></div>
     <div style="position:absolute;left:-9999px" aria-hidden="true"><input type="text" id="hp" tabindex="-1" autocomplete="off"></div>
@@ -598,11 +598,19 @@ inputFotos.addEventListener('change', ()=>{
   arquivos = Array.from(inputFotos.files).slice(0, MAX_FOTOS);
   previas.innerHTML = '';
   arquivos.forEach(f=>{
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(f);
-    previas.appendChild(img);
+    if(f.type.startsWith('video/')){
+      const v = document.createElement('video');
+      v.src = URL.createObjectURL(f);
+      v.muted = true; v.playsInline = true;
+      v.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:3px;border:1px solid rgba(230,226,196,.4)';
+      previas.appendChild(v);
+    }else{
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      previas.appendChild(img);
+    }
   });
-  convStatus.textContent = arquivos.length ? `${arquivos.length} foto(s) selecionada(s)` : '';
+  convStatus.textContent = arquivos.length ? `${arquivos.length} arquivo(s) selecionado(s)` : '';
 });
 
 function comprimir(arquivo, maxLado=1920, qualidade=.82){
@@ -625,27 +633,38 @@ function comprimir(arquivo, maxLado=1920, qualidade=.82){
   });
 }
 
-async function subirCloudinary(blob){
+async function subirCloudinary(arquivoOuBlob){
   const fd = new FormData();
-  fd.append('file', blob);
+  fd.append('file', arquivoOuBlob);
   fd.append('upload_preset', CLOUDINARY_PRESET);
-  const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method:'POST', body: fd });
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`, { method:'POST', body: fd });
   if(!r.ok) throw new Error('Falha no envio');
   const j = await r.json();
   return j.secure_url;
 }
 
+const MAX_VIDEO_MB = 100;
+
 btnEnviar.addEventListener('click', async ()=>{
   if(document.getElementById('hp').value) return; /* honeypot */
-  if(!arquivos.length){ convStatus.textContent = 'Escolha ao menos uma foto para enviar. 🙂'; return; }
+  if(!arquivos.length){ convStatus.textContent = 'Escolha ao menos uma foto ou vídeo para enviar. 🙂'; return; }
+  const videoGrande = arquivos.find(f=>f.type.startsWith('video/') && f.size > MAX_VIDEO_MB*1024*1024);
+  if(videoGrande){
+    convStatus.textContent = `O vídeo "${videoGrande.name}" passa de ${MAX_VIDEO_MB} MB. Envie um trecho mais curto, por favor. 🎬`;
+    return;
+  }
   btnEnviar.style.pointerEvents = 'none'; btnEnviar.style.opacity = .6;
   barra.style.display = 'block'; barraFill.style.width = '4%';
   const urls = [];
   try{
     for(let i=0;i<arquivos.length;i++){
-      convStatus.textContent = `Enviando foto ${i+1} de ${arquivos.length}…`;
-      const blob = await comprimir(arquivos[i]);
-      urls.push(await subirCloudinary(blob));
+      const f = arquivos[i];
+      const ehVideo = f.type.startsWith('video/');
+      convStatus.textContent = ehVideo
+        ? `Enviando vídeo ${i+1} de ${arquivos.length}… (pode demorar um pouquinho) 🎬`
+        : `Enviando foto ${i+1} de ${arquivos.length}…`;
+      const conteudo = ehVideo ? f : await comprimir(f);
+      urls.push(await subirCloudinary(conteudo));
       barraFill.style.width = `${Math.round(((i+1)/arquivos.length)*88)}%`;
     }
     convStatus.textContent = 'Avisando os noivos… 💌';
@@ -663,8 +682,8 @@ btnEnviar.addEventListener('click', async ()=>{
     }catch(_){ /* fotos já estão salvas; notificação é bônus */ }
     barraFill.style.width = '100%';
     convStatus.textContent = avisou
-      ? '💚 Fotos enviadas com sucesso! Obrigado por fazer parte desse dia.'
-      : '💚 Fotos salvas com sucesso no álbum dos noivos!';
+      ? '💚 Enviado com sucesso! Obrigado por fazer parte desse dia.'
+      : '💚 Fotos e vídeos salvos com sucesso no álbum dos noivos!';
     arquivos = []; inputFotos.value = ''; previas.innerHTML = '';
     document.getElementById('convNome').value = ''; document.getElementById('convMsg').value = '';
   }catch(e){
