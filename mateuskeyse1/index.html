@@ -93,7 +93,7 @@ nav{
   padding:18px 5vw;transition:background .4s, box-shadow .4s;
 }
 nav.solida{background:rgba(253,252,247,.96);box-shadow:0 2px 20px rgba(46,64,34,.12)}
-nav .logo{font-family:'Great Vibes',cursive;font-size:1.8rem;color:var(--branco);text-decoration:none;transition:color .4s}
+nav .logo{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.25rem;letter-spacing:.3em;text-transform:uppercase;color:var(--branco);text-decoration:none;transition:color .4s}
 nav.solida .logo{color:var(--verde-escuro)}
 nav ul{display:flex;gap:26px;list-style:none}
 nav ul a{color:var(--branco);text-decoration:none;font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;transition:color .3s}
@@ -139,8 +139,8 @@ section{padding:96px 5vw}
 .cabeca{text-align:center;max-width:640px;margin:0 auto 56px}
 .cabeca .script{font-size:clamp(2.2rem,5vw,3.2rem);color:var(--verde-medio);display:block;margin-bottom:2px}
 .cabeca h2{font-size:clamp(2rem,5vw,2.9rem);color:var(--verde-escuro);letter-spacing:.04em}
-.cabeca .risco{width:70px;height:1px;background:var(--verde-medio);margin:22px auto 0;position:relative}
-.cabeca .risco::after{content:"✿";position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--branco);padding:0 10px;color:var(--verde-medio);font-size:.85rem}
+.cabeca .risco{width:110px;height:1px;background:linear-gradient(to right, var(--verde-medio) 0 40%, transparent 40% 60%, var(--verde-medio) 60% 100%);margin:22px auto 0;position:relative}
+.cabeca .risco::after{content:"✿";position:absolute;top:-9px;left:50%;transform:translateX(-50%);color:var(--verde-medio);font-size:.9rem;line-height:1}
 .aparece{opacity:0;transform:translateY(34px);transition:opacity .9s ease, transform .9s ease}
 .aparece.on{opacity:1;transform:translateY(0)}
 
@@ -190,7 +190,7 @@ section{padding:96px 5vw}
 .gal-conv{background:linear-gradient(165deg, var(--verde-escuro), var(--verde-noite));color:var(--creme)}
 .gal-conv .cabeca h2{color:var(--creme)}
 .gal-conv .cabeca .script{color:var(--verde-claro)}
-.gal-conv .cabeca .risco::after{background:transparent;color:var(--verde-claro)}
+.gal-conv .cabeca .risco::after{color:var(--verde-claro)}
 .conv-sub{max-width:560px;margin:-30px auto 44px;text-align:center;font-size:.95rem;line-height:1.7;color:#D8D9BC}
 .conv-form{max-width:520px;margin:0 auto;background:rgba(253,252,247,.06);border:1px solid rgba(230,226,196,.28);border-radius:6px;padding:38px 30px}
 .conv-form label{display:block;font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;color:var(--verde-claro);margin:18px 0 8px}
@@ -250,6 +250,10 @@ footer .flor{display:block;margin-top:22px;color:var(--verde-claro);font-size:1r
 .rsvp-form .btn{width:100%;margin-top:28px;text-align:center;cursor:pointer;font-family:'Jost',sans-serif}
 .rsvp-obs{margin-top:16px;font-size:.82rem;color:#7a8563;text-align:center;line-height:1.6}
 .rsvp-erro{color:#9a4b2f;font-size:.88rem;margin-top:12px;text-align:center;min-height:1.2em}
+
+.momento-frase{max-width:620px;margin:42px auto 0;text-align:center}
+.momento-frase p{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(1.05rem,1.8vw,1.25rem);line-height:1.8;color:var(--texto);margin-bottom:14px}
+.momento-frase .versiculo{font-style:normal;font-family:'Jost',sans-serif;font-size:.8rem;letter-spacing:.28em;text-transform:uppercase;color:var(--verde);margin-top:6px}
 
 /* ===== CARROSSEL ===== */
 .carrossel{
@@ -400,6 +404,11 @@ footer .flor{display:block;margin-top:22px;color:var(--verde-claro);font-size:1r
   <div class="gal-grade" style="grid-template-columns:minmax(260px,460px);justify-content:center">
     <div class="gal-item aparece"><img src="assets/noivos2.jpg" alt="Mateus e Keyse de testas coladas ao pôr do sol" loading="lazy"></div>
   </div>
+  <div class="momento-frase aparece">
+    <p>“Hoje celebramos o amor que Deus escreveu para nós. Unidos pela fé, escolhemos caminhar juntos para sempre.”</p>
+    <p>“Assim, eles já não são dois, mas sim uma só carne. Portanto, o que Deus uniu, ninguém separe.”</p>
+    <p class="versiculo">Mateus 19:6 ❤️</p>
+  </div>
 </section>
 
 <!-- LOCAL -->
@@ -413,7 +422,6 @@ footer .flor{display:block;margin-top:22px;color:var(--verde-claro);font-size:1r
     <div class="carrossel aparece" id="carLocal">
       <img src="assets/local2.jpg" alt="Salão de festas com lustres de cristal" class="ativa">
       <img src="assets/local1.jpg" alt="Decoração com muro inglês e bolo suspenso" loading="lazy">
-      <img src="assets/local3.jpg" alt="Mesa de doces finos" loading="lazy">
       <img src="assets/local4.jpg" alt="Fachada do Portal das Águas" loading="lazy">
       <div class="carrossel-pontos"></div>
     </div>
@@ -432,14 +440,13 @@ footer .flor{display:block;margin-top:22px;color:var(--verde-claro);font-size:1r
 <!-- PRESENTES -->
 <section class="presentes" id="presentes">
   <div class="cabeca aparece">
-    <span class="script">carinho</span>
     <h2>Lista de Presentes</h2>
     <div class="risco"></div>
   </div>
   <div class="presentes-caixa aparece">
     <div class="icone">🎁</div>
     <p>Sua presença é o nosso maior presente. Mas, se desejar nos presentear, preparamos uma lista com muito carinho — basta clicar abaixo.</p>
-    <a class="btn btn-verde" href="https://listaideal.com.br/" target="_blank" rel="noopener">Ver lista de presentes</a>
+    <a class="btn btn-verde" href="https://dkservicosdigitais.com.br/lista-de-presentes-mateus-keyse" target="_blank" rel="noopener">Ver lista de presentes</a>
   </div>
 </section>
 
@@ -496,7 +503,7 @@ footer .flor{display:block;margin-top:22px;color:var(--verde-claro);font-size:1r
     <h2>Galeria dos Convidados</h2>
     <div class="risco"></div>
   </div>
-  <p class="conv-sub aparece">Registrou um momento especial da festa? Envie suas fotos por aqui — elas vão direto para o álbum dos noivos e farão parte dessa história para sempre. 📸</p>
+  <p class="conv-sub aparece">Registrou um momento especial da festa? Envie suas fotos e vídeos por aqui — eles vão direto para o álbum dos noivos e farão parte dessa história para sempre. 📸🎬</p>
   <div class="conv-form aparece">
     <label for="convNome">Seu nome (opcional)</label>
     <input type="text" id="convNome" placeholder="Como você se chama?" maxlength="60">
