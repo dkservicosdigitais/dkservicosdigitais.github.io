@@ -31,7 +31,7 @@ body::after{
 }
 @keyframes grain{0%{transform:translate(0,0)}33%{transform:translate(-25px,14px)}66%{transform:translate(18px,-22px)}100%{transform:translate(0,0)}}
 
-#wire{position:fixed; inset:0; z-index:1}
+#wire{position:fixed; inset:0; width:100vw; height:100vh; z-index:1}
 #world{position:fixed; inset:0; z-index:2}
 .card{
   position:absolute; left:0; top:0; will-change:transform,opacity,filter;
@@ -68,7 +68,7 @@ body::after{
   font-family:'Jost',sans-serif; font-weight:300; letter-spacing:.26em; text-transform:uppercase; font-size:10.5px;
   padding:0; overflow:hidden; transition:border-color .4s;
 }
-#uploadBtn .in{position:relative; z-index:1; display:flex; align-items:center; gap:12px; padding:16px 30px; transition:color .4s}
+#uploadBtn .in{position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:12px; padding:16px 30px; transition:color .4s; white-space:nowrap}
 #uploadBtn .in em{font-family:'Cormorant Garamond',serif; font-style:italic; text-transform:none;
   font-size:15px; letter-spacing:.04em; color:var(--champagne); transition:color .4s}
 #uploadBtn::before{content:""; position:absolute; inset:0; background:var(--champagne);
@@ -210,6 +210,33 @@ body::after{
 #toast.on{transform:translate(-50%,0)}
 #toast em{color:var(--champagne); font-style:normal}
 
+
+/* ---------- celular ---------- */
+@media (max-width:700px){
+  #brand{font-size:15px; left:16px; letter-spacing:.1em}
+  #counter{font-size:8.5px; letter-spacing:.22em; right:54px}
+  #mute{width:30px; height:30px; font-size:10px; right:14px}
+  #hint{display:none}
+  #year{display:none}
+  #uploadBtn{bottom:max(18px,env(safe-area-inset-bottom)); max-width:94vw}
+  #uploadBtn .in{padding:13px 16px; font-size:8.5px; letter-spacing:.14em; gap:8px}
+  #uploadBtn .in em{font-size:12.5px}
+  .t1{font-size:15vw}
+  .t2{font-size:10.5vw}
+  #names{font-size:5.4vw; letter-spacing:.24em; margin-top:18px}
+  #ihint{font-size:9px; letter-spacing:.26em; padding:0 24px; text-align:center}
+  #lbMedia{max-width:90vw}
+  #lbMedia img,#lbMedia video{max-height:56vh}
+  #lbBy{bottom:max(13vh,100px); font-size:15px; letter-spacing:.16em}
+  #lbDown{bottom:max(5vh,38px); padding:11px 22px; font-size:9.5px}
+  #lbClose{top:max(14px,env(safe-area-inset-top)); right:14px; width:40px; height:40px; font-size:14px}
+  .uphead{padding:26px 22px 0}
+  .uphead h2{font-size:24px}
+  .upbody{padding:20px 22px 26px}
+  #gname{font-size:17px}
+  #drop{padding:22px 12px}
+  #toast{width:max-content; max-width:92vw; font-size:11px; padding:12px 18px; text-align:center}
+}
 @media (prefers-reduced-motion:reduce){
   body::after{animation:none}
   .glitch::before,.glitch::after{animation:none; opacity:.25}
@@ -320,14 +347,24 @@ let rotY = 0.4, rotX = -0.12, velY = 0, velX = 0;
 let dragging = false, moved = 0, px = 0, py = 0;
 const cards = [];
 
+let CS = 1; /* escala dos cartões conforme a tela */
+function sizeCard(c){
+  if (!c.ratio) return;
+  c.w = (c.ratio > 1 ? 116 : 160) * CS;
+  c.h = c.w * c.ratio + 30 * CS;
+}
 function resize(){
   W = innerWidth; H = innerHeight;
   wire.width = W * devicePixelRatio; wire.height = H * devicePixelRatio;
   wctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
   R = Math.min(W,H) * 0.42;
   PERSP = R * 3.4;
+  CS = Math.max(0.48, Math.min(1, Math.min(W,H) / 720));
+  cards.forEach(sizeCard);
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 250));
+resize();
 
 function slot(i){
   return { lat: ((i * 0.618034) % 1 - 0.5) * 1.3, lon: i * 2.399963 };
@@ -345,8 +382,8 @@ function addCard(p, i, spawn){
   cards.push(c);
   const img = el.querySelector('img');
   img.onload = () => {
-    const ratio = img.naturalHeight / img.naturalWidth;
-    c.w = ratio > 1 ? 116 : 160; c.h = c.w * ratio + 30;
+    c.ratio = img.naturalHeight / img.naturalWidth;
+    sizeCard(c);
   };
   img.onerror = () => { el.remove(); };
   document.getElementById('counter').textContent =
@@ -394,16 +431,19 @@ function drawWire(){
 
 let introDone = false;
 let lastRotY = rotY, lastRotX = rotX;
+const FINE = matchMedia('(pointer:fine)').matches;
 function tick(t){
   if (!dragging){ rotY += velY + 0.0015; rotX += velX; velY *= 0.95; velX *= 0.95; }
   rotX = Math.max(-0.7, Math.min(0.7, rotX));
   if (introDone && ZOOM < ZOOM_HOME) ZOOM = Math.min(ZOOM_HOME, ZOOM + (ZOOM_HOME-ZOOM)*0.045 + 0.0015);
 
-  /* rastro de movimento — bem leve */
-  const speed = Math.abs(rotY - lastRotY) + Math.abs(rotX - lastRotX);
-  lastRotY = rotY; lastRotX = rotX;
-  const blur = Math.min(1.6, speed * 26);
-  world.style.filter = blur > 0.15 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none';
+  /* rastro de movimento — bem leve, só no desktop */
+  if (FINE){
+    const speed = Math.abs(rotY - lastRotY) + Math.abs(rotX - lastRotX);
+    lastRotY = rotY; lastRotX = rotX;
+    const blur = Math.min(1.6, speed * 26);
+    world.style.filter = blur > 0.15 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none';
+  }
 
   drawWire();
   for (let i = 0; i < cards.length; i++){
