@@ -67,15 +67,29 @@ body::after{
   border:1px solid rgba(201,169,106,.45); color:var(--ivory);
   font-family:'Jost',sans-serif; font-weight:300; letter-spacing:.26em; text-transform:uppercase; font-size:10.5px;
   padding:0; overflow:hidden; transition:border-color .4s;
+  animation:btnGlow 2.8s ease-in-out infinite;
 }
+/* brilho suave pulsante — sinaliza para o convidado enviar as fotos */
+@keyframes btnGlow{
+  0%,100%{ box-shadow:0 0 0 rgba(201,169,106,0), 0 8px 26px rgba(0,0,0,.5); border-color:rgba(201,169,106,.4) }
+  50%    { box-shadow:0 0 26px rgba(201,169,106,.5), 0 8px 26px rgba(0,0,0,.5); border-color:rgba(201,169,106,.95) }
+}
+/* reflexo de luz que percorre o botão de leve */
+#uploadBtn::after{
+  content:""; position:absolute; top:0; bottom:0; left:0; width:38%; z-index:0; pointer-events:none;
+  background:linear-gradient(100deg, transparent, rgba(201,169,106,.28), transparent);
+  transform:translateX(-160%); animation:btnSheen 4.2s ease-in-out infinite;
+}
+@keyframes btnSheen{ 0%{transform:translateX(-160%)} 55%,100%{transform:translateX(380%)} }
 #uploadBtn .in{position:relative; z-index:1; display:flex; align-items:center; justify-content:center; gap:12px; padding:16px 30px; transition:color .4s; white-space:nowrap}
 #uploadBtn .in em{font-family:'Cormorant Garamond',serif; font-style:italic; text-transform:none;
   font-size:15px; letter-spacing:.04em; color:var(--champagne); transition:color .4s}
-#uploadBtn::before{content:""; position:absolute; inset:0; background:var(--champagne);
+#uploadBtn::before{content:""; position:absolute; inset:0; background:var(--champagne); z-index:0;
   transform:translateY(101%); transition:transform .45s cubic-bezier(.7,0,.2,1)}
-#uploadBtn:hover{border-color:var(--champagne)}
+#uploadBtn:hover{border-color:var(--champagne); animation-play-state:paused}
+#uploadBtn:hover::after{opacity:0}
 #uploadBtn:hover::before{transform:translateY(0)}
-#uploadBtn:hover .in, #uploadBtn:hover .in em{color:#151310}
+#uploadBtn:hover .in, #uploadBtn:hover .in em{color:#151310; position:relative; z-index:1}
 #uploadBtn i{position:absolute; width:7px; height:7px; border-color:var(--champagne); border-style:solid; z-index:2}
 #uploadBtn i:nth-child(1){top:-1px; left:-1px; border-width:1px 0 0 1px}
 #uploadBtn i:nth-child(2){top:-1px; right:-1px; border-width:1px 1px 0 0}
@@ -233,10 +247,8 @@ body::after{
     font-size:11px; letter-spacing:.14em; opacity:.5;
   }
   /* botão de envio → subido, na área do retângulo AMARELO (acima do rodapé) */
-  #uploadBtn{bottom:max(60px, calc(env(safe-area-inset-bottom) + 46px)); max-width:94vw; width:94vw; font-size:12px; letter-spacing:.18em}
-  #uploadBtn .in{padding:20px 22px; gap:8px; flex-wrap:wrap}
-  #uploadBtn .in em{font-size:18px}
-  #uploadBtn .in{padding:13px 16px; font-size:8.5px; letter-spacing:.14em; gap:8px}
+  #uploadBtn{bottom:max(60px, calc(env(safe-area-inset-bottom) + 46px)); width:auto; max-width:92vw; font-size:12px; letter-spacing:.18em}
+  #uploadBtn .in{padding:14px 20px; font-size:8.5px; letter-spacing:.14em; gap:7px; flex-wrap:nowrap}
   #uploadBtn .in em{font-size:12.5px}
   .t1{font-size:15vw}
   .t2{font-size:10.5vw}
@@ -257,6 +269,8 @@ body::after{
 @media (prefers-reduced-motion:reduce){
   body::after{animation:none}
   .glitch::before,.glitch::after{animation:none; opacity:.25}
+  #uploadBtn{animation:none; border-color:rgba(201,169,106,.7); box-shadow:0 0 18px rgba(201,169,106,.35)}
+  #uploadBtn::after{display:none}
 }
 </style>
 </head>
@@ -283,7 +297,7 @@ body::after{
     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#f2ede3" stroke-width="1">
       <circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="10" ry="4"/><path d="M12 2v20"/>
     </svg>
-    Arraste para explorar nossas memórias
+    Arraste para Explorar
   </div>
 </div>
 
@@ -373,8 +387,8 @@ function resize(){
   W = innerWidth; H = innerHeight;
   wire.width = W * devicePixelRatio; wire.height = H * devicePixelRatio;
   wctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  R = Math.min(W,H) * 0.36;   /* globo menor, com folga em relação ao botão */
-  CY = H * 0.44;              /* centro do globo um pouco acima do meio */
+  R = Math.min(W,H) * 0.39;   /* globo um pouco maior, mas sem encostar em nada */
+  CY = H * 0.46;              /* centro do globo um pouco acima do meio */
   PERSP = R * 3.4;
   CS = Math.max(0.48, Math.min(1, Math.min(W,H) / 720));
   cards.forEach(sizeCard);
