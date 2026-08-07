@@ -35,14 +35,14 @@ body::after{
 #world{position:fixed; inset:0; z-index:2}
 .card{
   position:absolute; left:0; top:0; will-change:transform,opacity,filter;
-  background:#f6f2ea; padding:6px 6px 24px 6px;
+  background:#f6f2ea; padding:6px;
   box-shadow:0 12px 40px rgba(0,0,0,.55);
 }
 .card img{display:block; width:100%; pointer-events:none; filter:saturate(.92) contrast(1.02)}
 .card .tag{position:absolute; left:0; right:0; bottom:2px; text-align:center;
   font-family:'Caveat',cursive; font-size:14px; color:#1d1b18; opacity:.85;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 6px}
-.card .play{position:absolute; inset:6px 6px 24px 6px; display:flex; align-items:center; justify-content:center; pointer-events:none}
+.card .play{position:absolute; inset:6px; display:flex; align-items:center; justify-content:center; pointer-events:none}
 .card .play span{width:32px;height:32px;border-radius:50%;background:rgba(5,5,5,.55);border:1px solid rgba(242,237,227,.7);
   display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ivory)}
 
@@ -73,7 +73,6 @@ body::after{
   font-size:15px; letter-spacing:.04em; color:var(--champagne); transition:color .4s}
 #uploadBtn::before{content:""; position:absolute; inset:0; background:var(--champagne);
   transform:translateY(101%); transition:transform .45s cubic-bezier(.7,0,.2,1)}
-.short{display:none}
 #uploadBtn:hover{border-color:var(--champagne)}
 #uploadBtn:hover::before{transform:translateY(0)}
 #uploadBtn:hover .in, #uploadBtn:hover .in em{color:#151310}
@@ -219,11 +218,11 @@ body::after{
   #mute{width:30px; height:30px; font-size:10px; right:14px}
   #hint{display:none}
   #year{display:none}
-  #uploadBtn{bottom:max(16px,env(safe-area-inset-bottom)); max-width:none; white-space:nowrap}
-  #uploadBtn .in{padding:11px 14px; font-size:8px; letter-spacing:.12em; gap:6px; flex-wrap:nowrap}
-  #uploadBtn .in em{font-size:11.5px}
-  .long{display:none} .short{display:inline}
-  #uploadBtn i{width:5px; height:5px}
+  #uploadBtn{bottom:max(18px,env(safe-area-inset-bottom)); max-width:94vw; width:94vw; font-size:12px; letter-spacing:.18em}
+  #uploadBtn .in{padding:20px 22px; gap:8px; flex-wrap:wrap}
+  #uploadBtn .in em{font-size:18px}
+  #uploadBtn .in{padding:13px 16px; font-size:8.5px; letter-spacing:.14em; gap:8px}
+  #uploadBtn .in em{font-size:12.5px}
   .t1{font-size:15vw}
   .t2{font-size:10.5vw}
   #names{font-size:5.4vw; letter-spacing:.24em; margin-top:18px}
@@ -252,13 +251,12 @@ body::after{
 <div id="world"></div>
 
 <div class="chrome" id="brand">LUCAS <em>&</em> JOYCE</div>
-<div class="chrome" id="counter">10 memórias</div>
 <button id="mute" class="chrome" title="Música">♪</button>
 <div class="chrome" id="hint">Arraste para explorar</div>
-<div class="chrome" id="year">©2026</div>
+<div class="chrome" id="year">Direitos reservados a DK Serviços Digitais 2026</div>
 
 <button id="uploadBtn"><i></i><i></i><i></i><i></i>
-  <span class="in">✦ <em>Envie</em><span class="long"> fotos e vídeos da festa </span><span class="short"> fotos e vídeos </span><em>aqui</em></span>
+  <span class="in">✦ <em>Envie</em> fotos e vídeos da festa <em>aqui</em></span>
 </button>
 
 <!-- abertura -->
@@ -354,15 +352,15 @@ let CS = 1; /* escala dos cartões conforme a tela */
 function sizeCard(c){
   if (!c.ratio) return;
   c.w = (c.ratio > 1 ? 116 : 160) * CS;
-  c.h = c.w * c.ratio + 30 * CS;
+  c.h = c.w * c.ratio + 12 * CS;
 }
 function resize(){
   W = innerWidth; H = innerHeight;
   wire.width = W * devicePixelRatio; wire.height = H * devicePixelRatio;
   wctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  R = Math.min(W * 0.55, H * 0.42);
+  R = Math.min(W,H) * 0.42;
   PERSP = R * 3.4;
-  CS = Math.max(0.4, Math.min(1, Math.min(W,H) / 800));
+  CS = Math.max(0.48, Math.min(1, Math.min(W,H) / 720));
   cards.forEach(sizeCard);
 }
 addEventListener('resize', resize);
@@ -377,8 +375,7 @@ function addCard(p, i, spawn){
   const el = document.createElement('div');
   el.className = 'card';
   el.innerHTML = '<img src="' + p.src + '" alt="" draggable="false">' +
-                 (p.video ? '<div class="play"><span>▶</span></div>' : '') +
-                 '<div class="tag">' + (p.name || 'Convidado') + '</div>';
+                 (p.video ? '<div class="play"><span>▶</span></div>' : '');
   el.addEventListener('click', () => { if (moved < 7) openLb(i); });
   world.appendChild(el);
   const c = { el, lat: s.lat, lon: s.lon, w: 0, h: 0, born: spawn ? performance.now() : 0 };
@@ -389,7 +386,8 @@ function addCard(p, i, spawn){
     sizeCard(c);
   };
   img.onerror = () => { el.remove(); };
-  document.getElementById('counter').textContent =
+  const _counterEl = document.getElementById('counter');
+  if (_counterEl) _counterEl.textContent =
     PHOTOS.length + (PHOTOS.length === 1 ? ' memória' : ' memórias');
 }
 PHOTOS.forEach((p,i) => addCard(p,i,false));
