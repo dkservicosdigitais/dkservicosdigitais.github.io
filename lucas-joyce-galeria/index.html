@@ -48,10 +48,10 @@ body::after{
 
 /* ---------- interface ---------- */
 .chrome{position:fixed; z-index:30; display:flex; align-items:center; gap:14px}
-#brand{top:max(20px,env(safe-area-inset-top)); left:26px; font-family:'Cormorant Garamond',serif; font-size:20px; letter-spacing:.14em}
+#brand{top:max(28px,env(safe-area-inset-top)); left:50%; right:auto; transform:translateX(-50%); justify-content:center; text-align:center; font-family:'Cormorant Garamond',serif; font-size:22px; letter-spacing:.2em}
 #brand em{font-style:italic; color:var(--champagne)}
 #counter{top:max(22px,env(safe-area-inset-top)); right:76px; font-size:11px; letter-spacing:.32em; text-transform:uppercase; opacity:.55}
-#year{bottom:max(20px,env(safe-area-inset-bottom)); right:26px; font-size:12px; opacity:.4; letter-spacing:.1em}
+#year{bottom:max(18px,env(safe-area-inset-bottom)); left:50%; right:auto; transform:translateX(-50%); text-align:center; white-space:nowrap; font-size:12px; opacity:.45; letter-spacing:.12em}
 #hint{bottom:max(20px,env(safe-area-inset-bottom)); left:26px; font-size:11px; letter-spacing:.3em; text-transform:uppercase; opacity:.5; transition:opacity 1s}
 #hint.off{opacity:0}
 #mute{position:fixed; z-index:30; top:max(14px,env(safe-area-inset-top)); right:24px;
@@ -62,7 +62,7 @@ body::after{
 
 /* botão de envio — refinado */
 #uploadBtn{
-  position:fixed; z-index:30; bottom:max(26px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  position:fixed; z-index:30; bottom:max(60px,calc(env(safe-area-inset-bottom) + 48px)); left:50%; transform:translateX(-50%);
   background:linear-gradient(180deg, rgba(13,12,11,.85), rgba(5,5,5,.85)); backdrop-filter:blur(10px);
   border:1px solid rgba(201,169,106,.45); color:var(--ivory);
   font-family:'Jost',sans-serif; font-weight:300; letter-spacing:.26em; text-transform:uppercase; font-size:10.5px;
@@ -213,12 +213,27 @@ body::after{
 
 /* ---------- celular ---------- */
 @media (max-width:700px){
-  #brand{font-size:15px; left:16px; letter-spacing:.1em}
+  /* nome dos noivos → centralizado, na área do retângulo ROSA */
+  #brand{
+    left:50%; right:auto;
+    top:max(96px, calc(env(safe-area-inset-top) + 70px));
+    transform:translateX(-50%);
+    justify-content:center; text-align:center;
+    font-size:22px; letter-spacing:.24em;
+  }
   #counter{font-size:8.5px; letter-spacing:.22em; right:54px}
   #mute{width:30px; height:30px; font-size:10px; right:14px}
   #hint{display:none}
-  #year{display:none}
-  #uploadBtn{bottom:max(18px,env(safe-area-inset-bottom)); max-width:94vw; width:94vw; font-size:12px; letter-spacing:.18em}
+  /* rodapé → visível e centralizado na base, na marcação VERMELHA */
+  #year{
+    display:block; left:50%; right:auto;
+    bottom:max(16px, env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    text-align:center; white-space:nowrap;
+    font-size:11px; letter-spacing:.14em; opacity:.5;
+  }
+  /* botão de envio → subido, na área do retângulo AMARELO (acima do rodapé) */
+  #uploadBtn{bottom:max(60px, calc(env(safe-area-inset-bottom) + 46px)); max-width:94vw; width:94vw; font-size:12px; letter-spacing:.18em}
   #uploadBtn .in{padding:20px 22px; gap:8px; flex-wrap:wrap}
   #uploadBtn .in em{font-size:18px}
   #uploadBtn .in{padding:13px 16px; font-size:8.5px; letter-spacing:.14em; gap:8px}
@@ -253,7 +268,7 @@ body::after{
 <div class="chrome" id="brand">LUCAS <em>&</em> JOYCE</div>
 <button id="mute" class="chrome" title="Música">♪</button>
 <div class="chrome" id="hint">Arraste para explorar</div>
-<div class="chrome" id="year">Direitos reservados a DK Serviços Digitais 2026</div>
+<div class="chrome" id="year">DK Serviços Digitais © 2026</div>
 
 <button id="uploadBtn"><i></i><i></i><i></i><i></i>
   <span class="in">✦ <em>Envie</em> fotos e vídeos da festa <em>aqui</em></span>
@@ -342,7 +357,7 @@ document.querySelector('.side.r .hand').innerHTML = manicule(false);
 const world = document.getElementById('world');
 const wire  = document.getElementById('wire');
 const wctx  = wire.getContext('2d');
-let W, H, R, PERSP, ZOOM = 0.5;                 /* anima 0.5 → 0.92 na abertura */
+let W, H, R, CY, PERSP, ZOOM = 0.5;             /* anima 0.5 → 0.92 na abertura */
 const ZOOM_HOME = 0.92;
 let rotY = 0.4, rotX = -0.12, velY = 0, velX = 0;
 let dragging = false, moved = 0, px = 0, py = 0;
@@ -358,7 +373,8 @@ function resize(){
   W = innerWidth; H = innerHeight;
   wire.width = W * devicePixelRatio; wire.height = H * devicePixelRatio;
   wctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  R = Math.min(W,H) * 0.42;
+  R = Math.min(W,H) * 0.36;   /* globo menor, com folga em relação ao botão */
+  CY = H * 0.44;              /* centro do globo um pouco acima do meio */
   PERSP = R * 3.4;
   CS = Math.max(0.48, Math.min(1, Math.min(W,H) / 720));
   cards.forEach(sizeCard);
@@ -399,7 +415,7 @@ function project(lat, lon){
   const y1 = y*cx - z1*sx, z2 = y*sx + z1*cx;
   const r = R * ZOOM;
   const k = PERSP / (PERSP - z2*r);
-  return { sx: W/2 + x1*r*k, sy: H/2 + y1*r*k, k, z: z2 };
+  return { sx: W/2 + x1*r*k, sy: CY + y1*r*k, k, z: z2 };
 }
 
 function drawWire(){
