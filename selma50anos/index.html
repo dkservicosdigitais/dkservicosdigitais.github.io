@@ -33,6 +33,11 @@ body::after{
 
 #wire{position:fixed; inset:0; width:100vw; height:100vh; z-index:1}
 #world{position:fixed; inset:0; z-index:2}
+/* camada de desfoque só na abertura — leve, mantém o charme do globo atrás */
+#introBlur{position:fixed; inset:0; z-index:3; pointer-events:none;
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  background:rgba(5,5,5,.10); opacity:1; transition:opacity 1.3s ease;}
+body.revealed #introBlur{opacity:0;}
 .card{
   position:absolute; left:0; top:0; will-change:transform,opacity,filter;
   background:#f6f2ea; padding:6px;
@@ -292,6 +297,7 @@ body::after{
 
 <canvas id="wire"></canvas>
 <div id="world"></div>
+<div id="introBlur"></div>
 
 <div class="chrome" id="brand">SELMA <em>·</em> 50 ANOS</div>
 <button id="mute" class="chrome" title="Música">♪</button>
@@ -562,7 +568,7 @@ const seq = [
   () => intro.classList.add('p1'),
   () => intro.classList.add('p2'),
   () => intro.classList.add('p3'),
-  () => { intro.classList.add('done'); introDone = true; tryPlay(); }
+  () => { intro.classList.add('done'); document.body.classList.add('revealed'); introDone = true; tryPlay(); }
 ];
 let timers = [ setTimeout(seq[0], 450), setTimeout(seq[1], 2100),
                setTimeout(seq[2], 3500), setTimeout(seq[3], 5800) ];
