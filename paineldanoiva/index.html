@@ -1921,6 +1921,7 @@ function shell(html){ q("#root").innerHTML=html; }
 
 function renderLogin(){
   const _rem=(function(){try{return localStorage.getItem("pn_remember_email")||""}catch(e){return""}})();
+  const _remp=(function(){try{return atob(localStorage.getItem("pn_remember_pw")||"")}catch(e){return""}})();
   shell(`<div class="auth">
     <div class="auth-art">${authSlides()}
       <div class="auth-quote"><div class="ring">${RINGSVG}</div>
@@ -1938,7 +1939,7 @@ function renderLogin(){
         <div class="field"><label>E-mail</label>
           <input name="email" type="email" value="${esc(_rem)}" placeholder="voce@email.com" required autocomplete="username"></div>
         <div class="field"><label>Senha</label>
-          <div class="pw-wrap"><input name="password" type="password" placeholder="Sua senha" required autocomplete="current-password">
+          <div class="pw-wrap"><input name="password" type="password" value="${esc(_remp)}" placeholder="Sua senha" required autocomplete="current-password">
           <button type="button" class="toggle" data-pw>${svg("eye",18)}</button></div></div>
         <div class="check-row">
           <label><input type="checkbox" name="remember" ${_rem?'checked':''}> Lembrar de mim</label>
@@ -1955,7 +1956,7 @@ function renderLogin(){
   q("#loginForm").onsubmit=async e=>{
     e.preventDefault(); const fd=new FormData(e.target);
     const btn=q("button[type=submit]",e.target); btn.disabled=true; btn.textContent="Entrando...";
-    try{ if(fd.get("remember")) localStorage.setItem("pn_remember_email",(fd.get("email")||"").trim()); else localStorage.removeItem("pn_remember_email"); }catch(e){}
+    try{ if(fd.get("remember")){ localStorage.setItem("pn_remember_email",(fd.get("email")||"").trim()); localStorage.setItem("pn_remember_pw",btoa(fd.get("password")||"")); } else { localStorage.removeItem("pn_remember_email"); localStorage.removeItem("pn_remember_pw"); } }catch(e){}
     const r=await doLogin(fd.get("email"), fd.get("password"), fd.get("remember"));
     if(r.ok){ go(r.user.role==="admin" ? "#/admin" : "#/painel"); }
     else if(r.blocked){ go("#/login"); showErr("Seu acesso está bloqueado. Fale com o suporte."); btn.disabled=false; btn.textContent="Entrar no meu painel"; }
@@ -2157,6 +2158,7 @@ function renderApp(user, slug){
   outlet.innerHTML="";
   view.render(outlet, ctx);
   animateVisuals(outlet);
+  try{ window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; const mc=q(".content")||q(".main"); if(mc)mc.scrollTop=0; outlet.scrollTop=0; }catch(e){}
 }
 
 function setupNotifs(user,wed,d){
@@ -2394,7 +2396,7 @@ VIEWS.convidados={ title:()=>"Convidados", render(outlet,ctx){
 /* ---- FORNECEDORES ---- */
 const SUP_CATS=["Espaço","Buffet","Fotógrafo","Filmagem","Decoração","Vestido","DJ","Banda","Cerimonial","Bolo","Doces","Flores","Cabelo","Maquiagem","Transporte","Convites","Lembrancinhas","Outros"];
 VIEWS.fornecedores={ title:()=>"Fornecedores", render(outlet,ctx){
-  const d=ctx.d, s=calcSuppliers(d);
+  const d=ctx.d, s=calcSuppliers(d), bud=calcBudget(ctx.wed,d);
   const addBtn=`<button class="btn btn-primary" data-add>${svg("plus",16)} Novo fornecedor</button>`;
   let html=pageTop("Meus Fornecedores","Todos os seus fornecedores organizados.",addBtn);
   if(d.suppliers.length){
