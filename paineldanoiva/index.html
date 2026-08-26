@@ -1879,7 +1879,6 @@ const RINGSVG=`<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="30" r="1
 function shell(html){ q("#root").innerHTML=html; }
 
 function renderLogin(){
-  const cu=currentUser();
   shell(`<div class="auth">
     <div class="auth-art"><span class="blob b1"></span><span class="blob b2"></span>
       <div class="auth-quote"><div class="ring">${RINGSVG}</div>
@@ -1889,7 +1888,6 @@ function renderLogin(){
     </div>
     <div class="auth-form-wrap"><div class="auth-card">
       <div class="auth-brand"><span class="ring">${RINGSVG}</span> Painel da Noiva</div>
-      ${cu?`<div class="demo-hint" style="border-style:solid;border-color:var(--sage);background:var(--sage-bg);color:#5f7a51;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px"><span>Você já está conectada como <b>${esc(cu.email)}</b>.</span><a class="link" data-continue href="#" style="white-space:nowrap">Continuar &rarr;</a></div>`:""}
       <h1>Bem-vinda ao seu Painel</h1>
       <p class="sub">Entre para continuar organizando o seu grande dia.</p>
       <div class="form-err" id="err">${svg("warn",16)}<span></span></div>
@@ -1910,7 +1908,6 @@ function renderLogin(){
     </div></div>
   </div>`);
   wirePwToggle();
-  var _cont=q("[data-continue]"); if(_cont)_cont.onclick=function(ev){ ev.preventDefault(); var u=currentUser(); go(u&&u.role==="admin"?"#/admin":"#/painel"); };
   q("#loginForm").onsubmit=async e=>{
     e.preventDefault(); const fd=new FormData(e.target);
     const btn=q("button[type=submit]",e.target); btn.disabled=true; btn.textContent="Entrando...";
@@ -2682,7 +2679,7 @@ function renderAdmin(user){
       <div class="grid g-4 stagger" style="margin-bottom:20px">
         <div class="card"><div class="stat-lbl">Total de contas</div><div class="stat-num" data-count="${users.length}">0</div></div>
         <div class="card"><div class="stat-lbl">Ativas</div><div class="stat-num" data-count="${stat("active")}" style="color:var(--sage)">0</div></div>
-        <div class="card"><div class="stat-lbl">Bloqueadas</div><div class="stat-num" data-count="${stat("blocked")}" style="color:var(--red)">0</div></div>
+        <div class="card"><div class="stat-lbl">Inativas</div><div class="stat-num" data-count="${stat("blocked")}" style="color:var(--red)">0</div></div>
         <div class="card"><div class="stat-lbl">Pendentes</div><div class="stat-num" data-count="${stat("pending_activation")}" style="color:var(--amber-t)">0</div></div>
       </div>
       <div class="card"><div class="card-head"><h3>Contas cadastradas</h3></div>
@@ -2692,16 +2689,16 @@ function renderAdmin(user){
           <td>${u.role==="admin"?'<span class="badge-s admin-badge" style="color:#fff">Dono</span>':'<span class="badge-s s-gray">Noiva</span>'}</td>
           <td>${fmtDate(new Date(u.createdAt).toISOString().slice(0,10))}</td>
           <td>${u.lastLoginAt?fmtDate(new Date(u.lastLoginAt).toISOString().slice(0,10)):"—"}</td>
-          <td>${u.accessStatus==="active"?'<span class="badge-s s-green">Ativa</span>':u.accessStatus==="blocked"?'<span class="badge-s s-red">Bloqueada</span>':'<span class="badge-s s-amber">Pendente</span>'}</td>
+          <td>${u.accessStatus==="active"?'<span class="badge-s s-green">Ativa</span>':u.accessStatus==="blocked"?'<span class="badge-s s-red">Inativa</span>':'<span class="badge-s s-amber">Pendente</span>'}</td>
           <td><div class="row-actions">${u.role!=="admin"?(u.accessStatus==="blocked"
-            ?`<button class="btn btn-sm btn-soft" data-unblock="${u.id}">Desbloquear</button>`
-            :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Bloquear</button>`):'<span class="muted" style="font-size:.8rem">—</span>'}</div></td></tr>`; }).join("")}
+            ?`<button class="btn btn-sm btn-soft" data-unblock="${u.id}">Ativar</button>`
+            :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Desativar</button>`):'<span class="muted" style="font-size:.8rem">—</span>'}</div></td></tr>`; }).join("")}
         </tbody></table></div></div>
       <p class="muted" style="font-size:.82rem;margin-top:14px">${svg("shield",14)} Integração com a Kiwify e verificação de senha no servidor entram na etapa de backend. Senhas nunca são exibidas.</p>
     </main></div></div>`;
   animateVisuals(q("#viewOutlet"));
-  qa("[data-block]").forEach(b=>b.onclick=()=>{ confirmModal("Bloquear acesso?","A noiva não conseguirá entrar, mas os dados são preservados.",()=>{ const u=users.find(x=>x.id===b.dataset.block); u.accessStatus="blocked"; saveUser(u); toast("Acesso bloqueado."); renderAdmin(user); },"Bloquear"); });
-  qa("[data-unblock]").forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.id===b.dataset.unblock); u.accessStatus="active"; saveUser(u); toast("Acesso liberado."); renderAdmin(user); });
+  qa("[data-block]").forEach(b=>b.onclick=()=>{ confirmModal("Desativar acesso?","Use isto se o cliente pediu reembolso/estorno. A conta não conseguirá entrar, mas os dados ficam preservados caso reative depois.",()=>{ const u=users.find(x=>x.id===b.dataset.block); u.accessStatus="blocked"; saveUser(u); toast("Acesso desativado."); renderAdmin(user); },"Desativar"); });
+  qa("[data-unblock]").forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.id===b.dataset.unblock); u.accessStatus="active"; saveUser(u); toast("Acesso reativado."); renderAdmin(user); });
 }
 
 /* ==================================================================
@@ -2724,7 +2721,15 @@ function renderAdmin(user){
   var overlay=document.getElementById("pnAppOverlay");
   var back=document.getElementById("pnBackSite");
   var loaded=false;
-  function ensure(){ if(loaded)return; frame.srcdoc="<!DOCTYPE html>"+tpl.innerHTML; loaded=true; }
+  function ensure(){
+    if(loaded)return;
+    var docHtml="<!DOCTYPE html>"+tpl.innerHTML;
+    // Load from a real (blob) URL so the app's internal #hash links navigate INSIDE the app
+    // (srcdoc would reload the iframe to the parent page on every link click).
+    var blob=new Blob([docHtml],{type:"text/html"});
+    frame.src=URL.createObjectURL(blob);
+    loaded=true;
+  }
   ensure();
   function isAuth(h){ return !h||h==="#"||h.indexOf("#/login")===0||h.indexOf("#/cadastro")===0||h.indexOf("#/recuperar")===0; }
   function syncBack(){ try{ back.style.display=isAuth(frame.contentWindow.location.hash)?"inline-flex":"none"; }catch(e){ back.style.display="none"; } }
