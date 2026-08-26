@@ -2710,7 +2710,7 @@ function renderAdmin(user){
           <td>${u.accessStatus==="active"?'<span class="badge-s s-green">Ativa</span>':u.accessStatus==="blocked"?'<span class="badge-s s-red">Inativa</span>':'<span class="badge-s s-amber">Pendente</span>'}</td>
           <td><div class="row-actions">${u.role!=="admin"?(u.accessStatus==="blocked"
             ?`<button class="btn btn-sm btn-soft" data-unblock="${u.id}">Ativar</button>`
-            :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Desativar</button>`):'<span class="muted" style="font-size:.8rem">—</span>'}</div></td></tr>`; }).join("")}
+            :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Desativar</button>`)+`<button class="icon-btn danger" data-remove="${u.id}" title="Excluir conta">`+svg("trash",15)+`</button>`:'<span class="muted" style="font-size:.8rem">—</span>'}</div></td></tr>`; }).join("")}
         </tbody></table></div></div>
       <div class="alert info" style="margin-top:16px">${svg("shield",16)}<div><b>Link de cadastro para quem pagou:</b> compartilhe o endereço do seu site com <b>#cadastro</b> no final — ex.: <b>seusite.com/paineldanoiva/#cadastro</b>. Só quem tiver esse link consegue criar uma conta. Você também pode criar direto no botão “Criar acesso”. <br><span style="opacity:.85">Obs.: sem servidor, cada conta fica salva no navegador onde foi criada; o controle central de todas as contas vem na etapa de backend.</span></div></div>
     </main></div></div>`;
@@ -2728,6 +2728,10 @@ function renderAdmin(user){
     if(!r.ok) return toast(r.msg,"err");
     closeModal(); toast("Acesso criado! O cliente já pode entrar com esse e-mail e senha."); renderAdmin(user);
   }}); };
+  qa("[data-remove]").forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.id===b.dataset.remove);
+    confirmModal("Excluir conta?","Isto apaga a conta \""+u.email+"\" e todos os dados dela. Não pode ser desfeito.",()=>{
+      DB.set(K.users, users.filter(x=>x.id!==u.id)); DB.del(K.wedding(u.id)); DB.del(K.data(u.id));
+      toast("Conta excluída."); renderAdmin(user); }); });
 }
 
 /* ==================================================================
@@ -2745,32 +2749,25 @@ function renderAdmin(user){
 </template>
 <script>
 (function(){
-  var tpl=document.getElementById("pnAppTpl");
-  var frame=document.getElementById("pnAppFrame");
-  var overlay=document.getElementById("pnAppOverlay");
-  var back=document.getElementById("pnBackSite");
-  var loaded=false;
-  function ensure(){ if(loaded)return; var docHtml="<!DOCTYPE html>"+tpl.innerHTML;
-    var blob=new Blob([docHtml],{type:"text/html"}); frame.src=URL.createObjectURL(blob); loaded=true; }
+  var tpl=document.getElementById("pnAppTpl"),frame=document.getElementById("pnAppFrame"),
+      overlay=document.getElementById("pnAppOverlay"),back=document.getElementById("pnBackSite"),loaded=false;
+  function ensure(){ if(loaded)return; var d="<!DOCTYPE html>"+tpl.innerHTML;
+    frame.src=URL.createObjectURL(new Blob([d],{type:"text/html"})); loaded=true; }
   ensure();
   function isAuth(h){ return !h||h==="#"||h.indexOf("#/login")===0||h.indexOf("#/cadastro")===0||h.indexOf("#/recuperar")===0; }
   function syncBack(){ try{ back.style.display=isAuth(frame.contentWindow.location.hash)?"inline-flex":"none"; }catch(e){ back.style.display="none"; } }
-  function routeTo(target){ try{ var w=frame.contentWindow; if(w&&w.location){ w.location.hash=target||"#/login"; } }catch(e){} syncBack(); }
-  function openApp(target){ ensure(); overlay.classList.add("on"); document.body.style.overflow="hidden";
-    try{ if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){ routeTo(target); return; } }catch(e){}
-    frame.addEventListener("load", function(){ routeTo(target); }, {once:true}); }
+  function routeTo(t){ try{ var w=frame.contentWindow; if(w&&w.location){ w.location.hash=t||"#/login"; } }catch(e){} syncBack(); }
+  function openApp(t){ ensure(); overlay.classList.add("on"); document.body.style.overflow="hidden";
+    try{ if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){ routeTo(t); return; } }catch(e){}
+    frame.addEventListener("load",function(){ routeTo(t); },{once:true}); }
   function closeApp(){ overlay.classList.remove("on"); document.body.style.overflow="";
     try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; } }
-  // "Entrar" -> login
-  document.addEventListener("click", function(e){ var t=e.target.closest&&e.target.closest("[data-enter]"); if(t){ e.preventDefault(); openApp("#/login"); } });
-  document.addEventListener("keydown", function(e){ if(e.key==="Enter"||e.key===" "){ var t=e.target.closest&&e.target.closest("[data-enter]"); if(t){ e.preventDefault(); openApp("#/login"); } } });
-  back.addEventListener("click", closeApp);
-  frame.addEventListener("load", function(){ try{ frame.contentWindow.addEventListener("hashchange", syncBack); }catch(e){} syncBack(); });
-  // Link exclusivo de cadastro: só quem recebe o link .../#cadastro (ou #criar) consegue criar conta
-  function checkSignupLink(){ var h=(location.hash||"").toLowerCase();
-    if(h==="#cadastro"||h==="#criar"||h==="#/cadastro"){ openApp("#/cadastro"); } }
-  window.addEventListener("hashchange", checkSignupLink);
-  checkSignupLink();
+  document.addEventListener("click",function(e){ var t=e.target.closest&&e.target.closest("[data-enter]"); if(t){ e.preventDefault(); openApp("#/login"); } });
+  document.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ var t=e.target.closest&&e.target.closest("[data-enter]"); if(t){ e.preventDefault(); openApp("#/login"); } } });
+  back.addEventListener("click",closeApp);
+  frame.addEventListener("load",function(){ try{ frame.contentWindow.addEventListener("hashchange",syncBack); }catch(e){} syncBack(); });
+  function checkSignupLink(){ var h=(location.hash||"").toLowerCase(); if(h==="#cadastro"||h==="#criar"||h==="#/cadastro"){ openApp("#/cadastro"); } }
+  window.addEventListener("hashchange",checkSignupLink); checkSignupLink();
 })();
 </script>
 </body>
