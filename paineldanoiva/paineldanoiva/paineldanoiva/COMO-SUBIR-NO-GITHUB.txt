@@ -1,0 +1,50 @@
+==========================================================
+COMO SUBIR NO GITHUB SEM DAR ERRO 404
+==========================================================
+
+O QUE CAUSAVA O ERRO:
+O botao "Entrar" abre o arquivo painel-app.html, mas esse
+arquivo ainda nao estava na pasta paineldanoiva do seu GitHub.
+Agora ele esta incluido aqui.
+
+ARQUIVOS DESTE PACOTE (todos vao na pasta "paineldanoiva"):
+  - index.html        -> a landing page (a pagina de vendas)
+  - painel-app.html   -> o sistema/login/painel (o que abre no "Entrar")
+  - LEIA-ME.md        -> documentacao (opcional)
+  - COMO-SUBIR-NO-GITHUB.txt -> este arquivo (opcional)
+
+IMPORTANTE: o nome "index.html" precisa ser exatamente esse,
+tudo minusculo. E "painel-app.html" tambem, tudo minusculo.
+O GitHub diferencia maiusculas de minusculas.
+
+------------------------------------------------------------
+PASSO A PASSO (pelo site do GitHub)
+------------------------------------------------------------
+1) Descompacte este .zip no seu computador (botao direito >
+   Extrair). Voce vera os arquivos acima.
+
+2) Entre no seu repositorio no github.com e abra a pasta
+   "paineldanoiva".
+
+3) Clique em "Add file" > "Upload files".
+
+4) Arraste os arquivos index.html e painel-app.html para a
+   area de upload (pode arrastar os dois de uma vez).
+   - Se pedir para substituir o index.html que ja existe,
+     confirme (sim, substitua).
+
+5) Escreva qualquer descricao e clique em "Commit changes".
+
+6) Espere de 1 a 2 minutos (o GitHub Pages leva um tempinho
+   para atualizar) e acesse:
+      https://dkservicosdigitais.app.br/paineldanoiva/
+   Clique em "Entrar". Deve abrir a tela de login sem erro.
+
+------------------------------------------------------------
+ACESSO DO DONO (para testar o painel):
+   E-mail: dkservicosdigitais@gmail.com
+   Senha:  784566
+   (entra ja com dados de demonstracao e com a area de Administracao)
+
+Contas novas de noiva comecam com o painel zerado.
+==========================================================
