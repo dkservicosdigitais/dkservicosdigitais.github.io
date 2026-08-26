@@ -1654,9 +1654,9 @@ function saveData(id,d){ DB.set(K.data(id), d); }
 
 async function doLogin(email, password, remember){
   const u = DB.get(K.users, []).find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
-  if(!u) return {ok:false, msg:"E-mail ou senha incorretos."};
+  if(!u) return {ok:false, msg:"Não encontramos uma conta com esse e-mail neste navegador."};
   const hash = await sha256(password);
-  if(hash !== u.passwordHash) return {ok:false, msg:"E-mail ou senha incorretos."};
+  if(hash !== u.passwordHash) return {ok:false, msg:"Senha incorreta. Verifique e tente novamente."};
   if(u.accessStatus==="blocked") return {ok:false, blocked:true};
   u.lastLoginAt = Date.now(); saveUser(u);
   DB.set(K.session, {userId:u.id, expires: Date.now() + (remember?30:1)*86400000, remember:!!remember});
@@ -1932,6 +1932,7 @@ function renderLogin(){
         </div>
         <button class="btn btn-primary btn-block" type="submit">Entrar no meu painel</button>
       </form>
+      <p class="auth-alt">Ainda não tem acesso? <a class="link" href="#/cadastro">Criar minha conta</a></p>
       
       
     </div></div>
@@ -2726,7 +2727,15 @@ function renderAdmin(user){
     if((o.password||"").length<6) return toast("A senha precisa ter ao menos 6 caracteres.","err");
     const r=await adminCreateUser(o.email,o.password,o.active==="1");
     if(!r.ok) return toast(r.msg,"err");
-    closeModal(); toast("Acesso criado! O cliente já pode entrar com esse e-mail e senha."); renderAdmin(user);
+    closeModal();
+    const cm=el("div",{class:"modal"});
+    cm.innerHTML=`<div class="modal-head"><h3>Acesso criado ✓</h3><button class="modal-x" data-x>&times;</button></div>
+      <div class="modal-body"><p class="muted" style="margin-bottom:12px">Envie estes dados para o cliente entrar:</p>
+      <div class="field"><label>E-mail</label><input readonly value="${esc(o.email)}"></div>
+      <div class="field"><label>Senha</label><input readonly value="${esc(o.password)}"></div>
+      <div class="alert warn" style="margin-top:6px">`+svg("warn",16)+`<div>O cliente precisa entrar <b>neste mesmo navegador/computador</b> enquanto não houver servidor. Em outro aparelho a conta ainda não existe.</div></div></div>
+      <div class="modal-foot"><button class="btn btn-primary" data-x>Entendi</button></div>`;
+    openModal(cm); qa("[data-x]",cm).forEach(b=>b.onclick=()=>{ closeModal(); renderAdmin(user); });
   }}); };
   qa("[data-remove]").forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.id===b.dataset.remove);
     confirmModal("Excluir conta?","Isto apaga a conta \""+u.email+"\" e todos os dados dela. Não pode ser desfeito.",()=>{
