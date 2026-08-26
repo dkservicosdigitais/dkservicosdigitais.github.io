@@ -1467,15 +1467,15 @@ async function loadCurrent(){
   if(!user){ CUR=null; return null; }
   const isAdmin=(user.email||"").toLowerCase()===OWNER_EMAIL.toLowerCase();
   let prof=null; try{ prof=(await sb.from("profiles").select("*").eq("id",user.id).single()).data; }catch(e){}
-  if(!prof){ try{ await sb.from("profiles").upsert({id:user.id,email:user.email}); }catch(e){} prof={status:"active"}; }
-  if(prof.status==="blocked" && !isAdmin) return "blocked";
+  if(!prof){ try{ await sb.from("profiles").upsert({id:user.id,email:user.email,status:isAdmin?"active":"pending"}); }catch(e){} prof={status:isAdmin?"active":"pending"}; }
+  let status=prof.status||"pending"; if(isAdmin) status="active";
   let wed=null,data=null;
   try{ const r=await sb.from("panels").select("wedding,data").eq("user_id",user.id).single(); if(r.data){ wed=r.data.wedding; data=r.data.data; } }catch(e){}
   wed=(wed&&Object.keys(wed).length)?wed:blankWedding();
   data=Object.assign(blankData(), data||{});
-  CUR={ user:{id:user.id,email:user.email,role:isAdmin?"admin":"bride",status:prof.status||"active"}, wed, data };
+  CUR={ user:{id:user.id,email:user.email,role:isAdmin?"admin":"bride",status}, wed, data };
   try{ await sb.from("profiles").update({last_login:new Date().toISOString()}).eq("id",user.id); }catch(e){}
-  return CUR.user.status;
+  return status;
 }
 
 
@@ -1632,7 +1632,7 @@ async function doLogin(email,password,remember){
   const {error}=await sb.auth.signInWithPassword({email:(email||"").trim(),password});
   if(error) return {ok:false, msg:/Invalid login/i.test(error.message)?"E-mail ou senha incorretos.":error.message};
   const st=await loadCurrent();
-  if(st==="blocked"){ await sb.auth.signOut(); return {ok:false,blocked:true}; }
+  if(st==="blocked"){ await sb.auth.signOut(); CUR=null; return {ok:false,blocked:true}; }
   return {ok:true, user:CUR.user};
 }
 async function createBride(email,password){
@@ -1839,6 +1839,7 @@ function router(){
 
   if(!user){ return go("#/login"); }
   if(user.status==="blocked"){ return renderBlocked(); }
+  if(user.status==="pending"){ return renderPending(); }
 
   if(hash.startsWith("#/admin")){
     if(user.role!=="admin"){ return go("#/painel"); }
@@ -1953,6 +1954,17 @@ function renderForgot(){
       <div class="demo-hint">Por segurança, não confirmamos se um e-mail está cadastrado. O envio real de e-mail é feito pelo backend (a conectar).</div>
     </div></div></div>`);
   q("#fgForm").onsubmit=e=>{ e.preventDefault(); shell(q("#root").innerHTML); toast("Se este e-mail estiver cadastrado, você receberá as instruções."); setTimeout(()=>go("#/login"),1400); };
+}
+function renderPending(){
+  shell(`<div class="onb"><div class="onb-card" style="text-align:center">
+    <div class="big-ring" style="width:80px;height:80px;margin:0 auto 16px">${RINGSVG}</div>
+    <h2>Quase lá!</h2>
+    <p class="lead" style="margin-top:8px">Sua conta foi criada e está <b>aguardando liberação</b> do acesso pelo administrador. Assim que for aprovada, seu painel abre aqui.</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="pReload">Já fui aprovada? Atualizar</button>
+      <button class="btn btn-ghost" onclick="logout()">Sair</button></div>
+  </div></div>`);
+  q("#pReload").onclick=async()=>{ const st=await loadCurrent(); if(st==="active") go("#/painel"); else toast("Ainda aguardando liberação.","err"); };
 }
 function renderBlocked(){
   shell(`<div class="onb"><div class="onb-card" style="text-align:center">
@@ -2659,7 +2671,7 @@ async function renderAdmin(user){
         <div class="card"><div class="stat-lbl">Total de contas</div><div class="stat-num" data-count="${list.length}">0</div></div>
         <div class="card"><div class="stat-lbl">Ativas</div><div class="stat-num" data-count="${stat("active")}" style="color:var(--sage)">0</div></div>
         <div class="card"><div class="stat-lbl">Inativas</div><div class="stat-num" data-count="${stat("blocked")}" style="color:var(--red)">0</div></div>
-        <div class="card"><div class="stat-lbl">Total noivas</div><div class="stat-num" data-count="${list.filter(u=>!isOwner(u)).length}" style="color:var(--gold)">0</div></div>
+        <div class="card"><div class="stat-lbl">Pendentes</div><div class="stat-num" data-count="${stat('pending')}" style="color:var(--amber-t)">0</div></div>
       </div>
       <div class="card"><div class="card-head"><h3>Contas cadastradas</h3></div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>E-mail</th><th>Papel</th><th>Cadastro</th><th>Último acesso</th><th>Status</th><th></th></tr></thead><tbody>
@@ -2669,16 +2681,19 @@ async function renderAdmin(user){
           return `<tr><td><b>${esc(u.email||"—")}</b></td>
           <td>${owner?'<span class="badge-s admin-badge" style="color:#fff">Dono</span>':'<span class="badge-s s-gray">Noiva</span>'}</td>
           <td>${cad}</td><td>${last}</td>
-          <td>${st==="active"?'<span class="badge-s s-green">Ativa</span>':'<span class="badge-s s-red">Inativa</span>'}</td>
-          <td><div class="row-actions">${owner?'<span class="muted" style="font-size:.8rem">—</span>':(st==="blocked"
+          <td>${st==="active"?'<span class="badge-s s-green">Ativa</span>':st==="pending"?'<span class="badge-s s-amber">Pendente</span>':'<span class="badge-s s-red">Inativa</span>'}</td>
+          <td><div class="row-actions">${owner?'<span class="muted" style="font-size:.8rem">—</span>':(st==="pending"
+            ?`<button class="btn btn-sm btn-soft" data-approve="${u.id}" style="background:var(--sage-bg);color:#5f7a51">Aceitar</button>`
+            :st==="blocked"
             ?`<button class="btn btn-sm btn-soft" data-unblock="${u.id}">Ativar</button>`
             :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Desativar</button>`)+`<button class="icon-btn danger" data-remove="${u.id}" title="Excluir conta">`+svg("trash",15)+`</button>`}</div></td></tr>`; }).join("")}
         </tbody></table></div></div>
-      <div class="alert info" style="margin-top:16px">${svg("shield",16)}<div><b>Link de cadastro:</b> compartilhe o endereço do seu site com <b>#cadastro</b> no final. Agora tudo fica salvo na nuvem — os cadastros aparecem aqui de qualquer aparelho. Para desativar (reembolso) use “Desativar”; “Excluir” remove os dados do cliente.</div></div>
+      <div class="alert info" style="margin-top:16px">${svg("shield",16)}<div><b>Link de cadastro:</b> compartilhe o endereço do seu site com <b>#cadastro</b> no final. Agora tudo fica salvo na nuvem — os cadastros aparecem aqui de qualquer aparelho. Quando alguém cria conta, ela fica <b>Pendente</b> — clique em <b>Aceitar</b> para liberar o painel dela. “Desativar” bloqueia (reembolso) e “Excluir” remove os dados.</div></div>
     </main></div></div>`;
   animateVisuals(q("#viewOutlet"));
   qa("[data-block]").forEach(b=>b.onclick=()=>{ confirmModal("Desativar acesso?","O cliente não conseguirá entrar (use em caso de reembolso). Os dados são preservados.",async()=>{ try{ await sb.from("profiles").update({status:"blocked"}).eq("id",b.dataset.block);}catch(e){} toast("Acesso desativado."); renderAdmin(user); },"Desativar"); });
   qa("[data-unblock]").forEach(b=>b.onclick=async()=>{ try{ await sb.from("profiles").update({status:"active"}).eq("id",b.dataset.unblock);}catch(e){} toast("Acesso reativado."); renderAdmin(user); });
+  qa("[data-approve]").forEach(b=>b.onclick=async()=>{ try{ await sb.from("profiles").update({status:"active"}).eq("id",b.dataset.approve);}catch(e){} toast("Acesso liberado! O cliente já pode entrar."); renderAdmin(user); });
   qa("[data-remove]").forEach(b=>b.onclick=()=>{ confirmModal("Excluir conta?","Isto apaga o painel e os dados deste cliente. Não pode ser desfeito.",async()=>{ try{ await sb.from("panels").delete().eq("user_id",b.dataset.remove); await sb.from("profiles").delete().eq("id",b.dataset.remove);}catch(e){} toast("Conta excluída."); renderAdmin(user); }); });
 }
 
