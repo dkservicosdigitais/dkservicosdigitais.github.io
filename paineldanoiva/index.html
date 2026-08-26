@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Painel da Noiva | Organize Seu Casamento em Um Só Lugar</title>
 <meta name="description" content="Organize convidados, orçamento, fornecedores, pagamentos, checklist e todos os detalhes do seu casamento com o Painel da Noiva. Acesso vitalício por R$59,99." />
 <meta name="theme-color" content="#FBF8F4" />
@@ -445,6 +445,16 @@ img{max-width:100%;display:block}
 .hero .btn-ghost:hover{background:rgba(255,255,255,.08)!important}
 .scroll-hint a{color:#E6D8C6!important}
 .scroll-hint .dot{border-color:rgba(214,175,140,.6)!important}
+
+/* --- Botão vívido ao tocar (:active) --- */
+.btn-primary:active{background:linear-gradient(135deg,#E98C86,#D96A63)!important;color:#fff!important;transform:translateY(1px) scale(.985);box-shadow:0 8px 22px -8px rgba(210,90,80,.9)!important}
+.btn-ghost:active{background:#F6E4E0!important;border-color:#D96A63!important;color:#B04A44!important;transform:translateY(1px) scale(.985)}
+.btn:active{filter:saturate(1.35)}
+/* --- Nav no topo (sobre hero escuro): marca e menu claros --- */
+.nav:not(.scrolled) .brand{color:#FBF5EC;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+.nav:not(.scrolled) .nav-links a{color:#EBE1D4}
+.nav:not(.scrolled) .nav-links a:hover{color:#fff}
+.nav:not(.scrolled) .hamb span{background:#FBF5EC;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 </style>
 <style id="pnCombinedStyle">
 [data-enter]{cursor:pointer}
@@ -512,7 +522,8 @@ img{max-width:100%;display:block}
         <p class="hero-sub">Tenha convidados, orçamento, fornecedores, pagamentos, tarefas, cronograma e todos os detalhes do seu grande dia organizados em um único lugar.</p>
         <p class="hero-tag">Tudo o que você precisa. Em um só painel.</p>
         <div class="hero-actions">
-          <a data-checkout class="btn btn-primary btn-lg">Quero meu painel da noiva</a>
+          <a data-checkout class="btn btn-primary" style="padding:15px 30px;font-size:.98rem">Quero meu painel da noiva</a>
+          <a data-enter="1" role="button" tabindex="0" class="btn btn-ghost">Entrar</a>
           <a href="#conheca" class="btn btn-ghost">Conhecer o painel ↓</a>
         </div>
         <p class="price-inline"><b>R$ 59,99</b> • pagamento único • acesso vitalício</p>
@@ -1118,7 +1129,7 @@ window.CHECKOUT_URL = ""; // ex.: "https://pay.kiwify.com.br/seu-link"
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Painel da Noiva — Sua central de organização</title>
 <meta name="theme-color" content="#FBF8F4" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='20' r='8' fill='none' stroke='%23BFA269' stroke-width='2.4'/%3E%3Cpath d='M12 10l4-6 4 6-4 4z' fill='%23E8CFC9' stroke='%23BFA269' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -1147,7 +1158,7 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:600;margin:0;line-height:1.1}
 p{margin:0}a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 button{font-family:inherit;cursor:pointer}
-input,select,textarea{font-family:inherit;font-size:15px}
+input,select,textarea{font-family:inherit;font-size:16px}
 .script{font-family:var(--script);color:var(--rose);font-weight:400}
 ::selection{background:var(--rose-soft)}
 :focus-visible{outline:2.5px solid var(--rose);outline-offset:2px;border-radius:4px}
@@ -1278,7 +1289,9 @@ input,select,textarea{font-family:inherit;font-size:15px}
 /* countdown card */
 .countdown{display:flex;align-items:center;gap:18px}
 .countdown .cal{width:56px;height:56px;border-radius:14px;background:var(--rose-bg);display:grid;place-items:center;color:var(--rose-d);flex:0 0 auto}
-.countdown .big{font-family:var(--serif);font-size:3rem;line-height:.9}
+.countdown .big{font-family:var(--serif);font-size:2.6rem;line-height:1.06;margin-bottom:2px}
+.countdown .stat-lbl{margin-top:0}
+@media(max-width:560px){.countdown .big{font-size:2.3rem}}
 .countdown .dt{font-size:.85rem;color:var(--ink-soft);margin-top:6px;display:flex;align-items:center;gap:6px}
 /* progress ring */
 .ring-card{display:flex;align-items:center;gap:20px}
@@ -1716,13 +1729,15 @@ function calcProgress(w,d){
   const contractedEss = essential.filter(cat=>
     d.suppliers.some(s=>s.category===cat && (s.status==="contratado"||s.status==="pago"))).length;
   const parts=[
-    { w:50, v: t.total? t.done/t.total : 0 },                                   // checklist
-    { w:15, v: contractedEss/essential.length },                                // fornecedores essenciais
+    { w:28, v: t.total? t.done/t.total : 0 },                                   // checklist
+    { w:14, v: contractedEss/essential.length },                                // fornecedores essenciais
+    { w:12, v: Math.min((d.guests||[]).length/10,1) },                          // convidados
+    { w:8,  v: (d.payments||[]).length? 1:0 },                                  // pagamentos lançados
     { w:10, v: (+w.budgetTotal>0)?1:0 },                                        // orçamento configurado
-    { w:10, v: Math.min(d.timeline.length/4,1) },                              // cronograma
-    { w:5,  v: (w.brideName&&w.partnerName&&w.date&&w.city)?1:0 },             // informações
-    { w:5,  v: Math.min(d.party.length/1,1) },                                 // padrinhos
-    { w:5,  v: Math.min(d.documents.length/1,1) }                             // documentos
+    { w:8,  v: Math.min((d.timeline||[]).length/4,1) },                        // cronograma
+    { w:10, v: (w.brideName&&w.partnerName&&w.date&&w.city)?1:0 },             // informações
+    { w:5,  v: Math.min((d.party||[]).length/1,1) },                           // padrinhos
+    { w:5,  v: Math.min((d.documents||[]).length/1,1) }                        // documentos
   ];
   const total=parts.reduce((a,p)=>a+p.w,0);
   const got=parts.reduce((a,p)=>a+p.w*p.v,0);
@@ -1905,6 +1920,7 @@ function authSlides(){ return `<div class="auth-slide" style="background-image:u
 function shell(html){ q("#root").innerHTML=html; }
 
 function renderLogin(){
+  const _rem=(function(){try{return localStorage.getItem("pn_remember_email")||""}catch(e){return""}})();
   shell(`<div class="auth">
     <div class="auth-art">${authSlides()}
       <div class="auth-quote"><div class="ring">${RINGSVG}</div>
@@ -1920,12 +1936,12 @@ function renderLogin(){
       <div class="form-err" id="err">${svg("warn",16)}<span></span></div>
       <form id="loginForm">
         <div class="field"><label>E-mail</label>
-          <input name="email" type="email" placeholder="voce@email.com" required autocomplete="username"></div>
+          <input name="email" type="email" value="${esc(_rem)}" placeholder="voce@email.com" required autocomplete="username"></div>
         <div class="field"><label>Senha</label>
           <div class="pw-wrap"><input name="password" type="password" placeholder="Sua senha" required autocomplete="current-password">
           <button type="button" class="toggle" data-pw>${svg("eye",18)}</button></div></div>
         <div class="check-row">
-          <label><input type="checkbox" name="remember"> Lembrar de mim</label>
+          <label><input type="checkbox" name="remember" ${_rem?'checked':''}> Lembrar de mim</label>
           <a class="link" href="#/recuperar">Esqueci minha senha</a>
         </div>
         <button class="btn btn-primary btn-block" type="submit">Entrar no meu painel</button>
@@ -1939,6 +1955,7 @@ function renderLogin(){
   q("#loginForm").onsubmit=async e=>{
     e.preventDefault(); const fd=new FormData(e.target);
     const btn=q("button[type=submit]",e.target); btn.disabled=true; btn.textContent="Entrando...";
+    try{ if(fd.get("remember")) localStorage.setItem("pn_remember_email",(fd.get("email")||"").trim()); else localStorage.removeItem("pn_remember_email"); }catch(e){}
     const r=await doLogin(fd.get("email"), fd.get("password"), fd.get("remember"));
     if(r.ok){ go(r.user.role==="admin" ? "#/admin" : "#/painel"); }
     else if(r.blocked){ go("#/login"); showErr("Seu acesso está bloqueado. Fale com o suporte."); btn.disabled=false; btn.textContent="Entrar no meu painel"; }
