@@ -1428,6 +1428,7 @@ table.tbl tr:hover td{background:#FCF9F5}
 .auth-quote .ring circle{stroke:#F6E4DF}
 .auth-quote .ring path{stroke:#F6E4DF;fill:rgba(255,255,255,.22)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -1449,6 +1450,34 @@ table.tbl tr:hover td{background:#FCF9F5}
    verificação de senha e isolamento multiusuário para o backend.
    ===================================================================== */
 "use strict";
+
+/* ===== CONFIG SUPABASE — cole a URL e a chave anon do seu projeto ===== */
+const OWNER_EMAIL="dkservicosdigitais@gmail.com";
+const SUPA_URL="https://frkcaowgxdlvaxvhngkm.supabase.co"; // ex.: https://xxxxx.supabase.co
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZya2Nhb3dneGRsdmF4dmhuZ2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NjgwOTcsImV4cCI6MjEwMzM0NDA5N30.ICtez1Ynenh77cI9rSYn48kqRINLQB2rkAj59Sd4gNo"; // chave anon public
+const sb = (window.supabase && /^https?:/.test(SUPA_URL) && SUPA_KEY)
+  ? window.supabase.createClient(SUPA_URL, SUPA_KEY) : null;
+
+let CUR=null; let _saveT=null;
+function queueSave(){ if(!sb||!CUR)return; clearTimeout(_saveT); _saveT=setTimeout(async()=>{
+  try{ await sb.from("panels").upsert({user_id:CUR.user.id, wedding:CUR.wed, data:CUR.data, updated_at:new Date().toISOString()}); }
+  catch(e){ console.error("save",e); } },400); }
+async function loadCurrent(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){ CUR=null; return null; }
+  const isAdmin=(user.email||"").toLowerCase()===OWNER_EMAIL.toLowerCase();
+  let prof=null; try{ prof=(await sb.from("profiles").select("*").eq("id",user.id).single()).data; }catch(e){}
+  if(!prof){ try{ await sb.from("profiles").upsert({id:user.id,email:user.email}); }catch(e){} prof={status:"active"}; }
+  if(prof.status==="blocked" && !isAdmin) return "blocked";
+  let wed=null,data=null;
+  try{ const r=await sb.from("panels").select("wedding,data").eq("user_id",user.id).single(); if(r.data){ wed=r.data.wedding; data=r.data.data; } }catch(e){}
+  wed=(wed&&Object.keys(wed).length)?wed:blankWedding();
+  data=Object.assign(blankData(), data||{});
+  CUR={ user:{id:user.id,email:user.email,role:isAdmin?"admin":"bride",status:prof.status||"active"}, wed, data };
+  try{ await sb.from("profiles").update({last_login:new Date().toISOString()}).eq("id",user.id); }catch(e){}
+  return CUR.user.status;
+}
+
 
 /* ---------------- Store ---------------- */
 const DB = {
@@ -1565,67 +1594,24 @@ const CHECKLIST_TEMPLATE = [
 ];
 
 /* ---------------- Seed admin + demo ---------------- */
-async function ensureSeed(){
-  let users = DB.get(K.users, null);
-  if(users && users.length) return;
-  const adminId = uid();
-  const hash = await sha256("784566");
-  users = [{
-    id:adminId, email:"dkservicosdigitais@gmail.com", passwordHash:hash,
-    role:"admin", accessStatus:"active", createdAt:Date.now(), lastLoginAt:null,
-    purchasePlatform:"owner", note:"Conta do dono — acesso ilimitado"
-  }];
-  DB.set(K.users, users);
-  // demo wedding for the owner so the panel looks populated (test environment)
-  seedDemo(adminId);
-}
-
-function seedDemo(id){
-  const wed = { brideName:"Juliana", partnerName:"Lucas", date:"2027-01-28", city:"São Paulo", state:"SP",
+function buildDemoData(){
+  const wed={ brideName:"Juliana", partnerName:"Lucas", date:"2027-01-28", city:"São Paulo", state:"SP",
     guestsEstimate:120, budgetTotal:40000, photo:null, onboarded:true };
-  DB.set(K.wedding(id), wed);
-  const d = blankData();
-  // suppliers (single source of truth for contracted/paid)
-  d.suppliers = [
-    sup("Buffet","Sabor & Arte","Marina", 8500,8500,"contratado"),
-    sup("Fotógrafo","Studio Luz","Rafael", 3200,3200,"pago"),
-    sup("Vestido","Ateliê Bella","Cláudia", 4800,4800,"pago"),
-    sup("Decoração","Flor & Cia","Paula", 6000,1900,"contratado"),
-    sup("Banda","Banda Encanto","João", 4000,0,"contratado")
-  ];
-  // guests (mixed) — counts derive from these entries
-  const gnames = [["Ana","Souza","confirmado","Família da noiva"],["Bruno","Lima","confirmado","Amigos"],
+  const d=blankData();
+  d.suppliers=[ sup("Buffet","Sabor & Arte","Marina",8500,8500,"contratado"),
+    sup("Fotógrafo","Studio Luz","Rafael",3200,3200,"pago"),
+    sup("Vestido","Ateliê Bella","Cláudia",4800,4800,"pago"),
+    sup("Decoração","Flor & Cia","Paula",6000,1900,"contratado"),
+    sup("Banda","Banda Encanto","João",4000,0,"contratado") ];
+  const gs=[["Ana","Souza","confirmado","Amigos"],["Bruno","Lima","confirmado","Amigos"],
     ["Carla","Dias","aguardando","Trabalho"],["Diego","Alves","confirmado","Família do parceiro"],
     ["Elisa","Rocha","confirmado","Amigos"],["Felipe","Costa","aguardando","Trabalho"],
-    ["Gabi","Nunes","confirmado","Família da noiva"],["Heitor","Melo","nao_ira","Amigos"],
-    ["Isa","Prado","confirmado","Família da noiva"],["Jorge","Reis","aguardando","Trabalho"],
-    ["Lara","Pinto","confirmado","Amigos"],["Marcos","Teixeira","confirmado","Família do parceiro"],
-    ["Nina","Barros","aguardando","Amigos"],["Otávio","Cardoso","confirmado","Família da noiva"],
-    ["Paula","Freitas","nao_ira","Trabalho"],["Rui","Gomes","confirmado","Amigos"]];
-  d.guests = gnames.map(g=>({id:uid(),name:g[0],surname:g[1],phone:"",email:"",group:g[3],status:g[2],companions:0,notes:""}));
-  // checklist from template, mark ~15 done
-  d.tasks = CHECKLIST_TEMPLATE.map((t,i)=>({id:uid(),category:t[0],title:t[1],priority:t[2],
-    status: i<15?"concluida":"pendente", due:"", notes:""}));
-  // timeline
-  d.timeline = [
-    tl("16:00","Preparação da noiva","Suíte principal"),
-    tl("17:00","Fotografias","Jardim"),
-    tl("18:00","Cerimônia","Igreja Matriz"),
-    tl("19:00","Recepção","Espaço Jardim"),
-    tl("20:00","Jantar","Espaço Jardim"),
-    tl("21:30","Primeira dança","Salão"),
-    tl("22:00","Festa","Salão")
-  ];
-  // payments (agenda de vencimentos)
-  d.payments = [
-    pay("Fotógrafo — parcela final","Fotógrafo",850,"2027-01-10","pendente"),
-    pay("Buffet — 2ª parcela","Buffet",1500,"2026-09-15","pendente"),
-    pay("Decoração — sinal","Decoração",950,"2026-09-22","pendente")
-  ];
-  d.gifts = [ gift("Jogo de panelas","Cozinha","Amazon",380,"desejado"), gift("Jogo de taças","Mesa","",120,"desejado") ];
-  d.songs = [ song("Entrada da noiva","A Thousand Years","Christina Perri"), song("Primeira dança","Perfect","Ed Sheeran") ];
-  d.notes = [ note("Buffet","Perguntar sobre opção vegetariana e sem glúten.") ];
-  DB.set(K.data(id), d);
+    ["Gabi","Nunes","confirmado","Família da noiva"],["Heitor","Melo","nao_ira","Amigos"]];
+  d.guests=gs.map(g=>({id:uid(),name:g[0],surname:g[1],phone:"",email:"",group:g[3],status:g[2],companions:0,notes:""}));
+  d.tasks=CHECKLIST_TEMPLATE.map((t,i)=>({id:uid(),category:t[0],title:t[1],priority:t[2],status:i<12?"concluida":"pendente",due:"",notes:""}));
+  d.timeline=[tl("16:00","Preparação da noiva","Suíte"),tl("18:00","Cerimônia","Igreja Matriz"),tl("19:00","Recepção","Espaço Jardim"),tl("20:00","Jantar","Espaço Jardim")];
+  d.payments=[pay("Buffet — 2ª parcela","Buffet",1500,"2026-09-15","pendente"),pay("Decoração — sinal","Decoração",950,"2026-09-22","pendente")];
+  return {wed,data:d};
 }
 function sup(cat,company,resp,total,paid,status){ return {id:uid(),category:cat,company,responsible:resp,phone:"",whatsapp:"",email:"",instagram:"",valorTotal:total,valorPago:paid,nextDue:"",status,notes:""}; }
 function tl(time,title,place){ return {id:uid(),time,title,place,responsible:"",notes:""}; }
@@ -1634,59 +1620,30 @@ function gift(name,cat,store,price,status){ return {id:uid(),name,category:cat,s
 function song(moment,title,artist){ return {id:uid(),moment,title,artist,link:"",notes:""}; }
 function note(cat,text){ return {id:uid(),title:cat,text,category:cat,fav:false}; }
 
-/* ---------------- Session & Auth ---------------- */
-function currentSession(){
-  const s = DB.get(K.session, null);
-  if(!s) return null;
-  if(s.expires && Date.now() > s.expires){ DB.del(K.session); return null; }
-  return s;
+/* ---------------- Session & Auth (Supabase) ---------------- */
+function currentUser(){ return CUR? CUR.user : null; }
+function saveUser(u){}
+function getWedding(id){ return CUR? CUR.wed : blankWedding(); }
+function saveWedding(id,w){ if(CUR){ CUR.wed=w; queueSave(); } }
+function getData(id){ return CUR? CUR.data : blankData(); }
+function saveData(id,d){ if(CUR){ CUR.data=d; queueSave(); } }
+async function doLogin(email,password,remember){
+  if(!sb) return {ok:false,msg:"Servidor não configurado (Supabase)."};
+  const {error}=await sb.auth.signInWithPassword({email:(email||"").trim(),password});
+  if(error) return {ok:false, msg:/Invalid login/i.test(error.message)?"E-mail ou senha incorretos.":error.message};
+  const st=await loadCurrent();
+  if(st==="blocked"){ await sb.auth.signOut(); return {ok:false,blocked:true}; }
+  return {ok:true, user:CUR.user};
 }
-function currentUser(){
-  const s = currentSession(); if(!s) return null;
-  return DB.get(K.users, []).find(u=>u.id===s.userId) || null;
+async function createBride(email,password){
+  if(!sb) return {ok:false,msg:"Servidor não configurado (Supabase)."};
+  const {data,error}=await sb.auth.signUp({email:(email||"").trim(),password});
+  if(error) return {ok:false, msg:/registered|already/i.test(error.message)?"Já existe uma conta com este e-mail.":error.message};
+  if(!data.session){ const si=await sb.auth.signInWithPassword({email:(email||"").trim(),password}); if(si.error) return {ok:true, needConfirm:true}; }
+  await loadCurrent();
+  return {ok:true};
 }
-function saveUser(u){ const us=DB.get(K.users,[]); const i=us.findIndex(x=>x.id===u.id); if(i>=0)us[i]=u; else us.push(u); DB.set(K.users,us); }
-function getWedding(id){ return DB.get(K.wedding(id), blankWedding()); }
-function saveWedding(id,w){ DB.set(K.wedding(id), w); }
-function getData(id){ const d=DB.get(K.data(id), null); if(!d){ const b=blankData(); DB.set(K.data(id),b); return b; } // backfill new keys
-  const b=blankData(); for(const k in b){ if(!(k in d)) d[k]=b[k]; } return d; }
-function saveData(id,d){ DB.set(K.data(id), d); }
-
-async function doLogin(email, password, remember){
-  const u = DB.get(K.users, []).find(x=>x.email.toLowerCase()===email.toLowerCase().trim());
-  if(!u) return {ok:false, msg:"Não encontramos uma conta com esse e-mail neste navegador."};
-  const hash = await sha256(password);
-  if(hash !== u.passwordHash) return {ok:false, msg:"Senha incorreta. Verifique e tente novamente."};
-  if(u.accessStatus==="blocked") return {ok:false, blocked:true};
-  u.lastLoginAt = Date.now(); saveUser(u);
-  DB.set(K.session, {userId:u.id, expires: Date.now() + (remember?30:1)*86400000, remember:!!remember});
-  return {ok:true, user:u};
-}
-async function createBride(email, password){
-  const us = DB.get(K.users, []);
-  if(us.some(x=>x.email.toLowerCase()===email.toLowerCase().trim()))
-    return {ok:false, msg:"Já existe uma conta com este e-mail."};
-  const id = uid();
-  us.push({ id, email:email.trim(), passwordHash:await sha256(password), role:"bride",
-    accessStatus:"active", createdAt:Date.now(), lastLoginAt:Date.now(),
-    purchasePlatform:"manual", purchaseId:null });
-  DB.set(K.users, us);
-  saveWedding(id, blankWedding());   // starts EMPTY
-  saveData(id, blankData());         // starts EMPTY
-  DB.set(K.session, {userId:id, expires: Date.now()+86400000, remember:false});
-  return {ok:true, id};
-}
-function logout(){ DB.del(K.session); location.hash="#/login"; }
-async function adminCreateUser(email,password,active){
-  const us=DB.get(K.users,[]);
-  if(us.some(u=>u.email.toLowerCase()===email.toLowerCase().trim())) return {ok:false,msg:"Já existe uma conta com este e-mail."};
-  const id=uid();
-  us.push({ id, email:email.trim(), passwordHash:await sha256(password), role:"bride",
-    accessStatus: active?"active":"blocked", createdAt:Date.now(), lastLoginAt:null,
-    purchasePlatform:"admin", purchaseId:null });
-  DB.set(K.users,us); saveWedding(id,blankWedding()); saveData(id,blankData());
-  return {ok:true,id};
-}
+async function logout(){ try{ if(sb) await sb.auth.signOut(); }catch(e){} CUR=null; location.hash="#/login"; }
 
 /* ---------------- Calculations (single source of truth) ---------------- */
 function calcSuppliers(d){
@@ -1881,7 +1838,7 @@ function router(){
   if(hash.startsWith("#/recuperar")){ return renderForgot(); }
 
   if(!user){ return go("#/login"); }
-  if(user.accessStatus==="blocked"){ return renderBlocked(); }
+  if(user.status==="blocked"){ return renderBlocked(); }
 
   if(hash.startsWith("#/admin")){
     if(user.role!=="admin"){ return go("#/painel"); }
@@ -1919,6 +1876,7 @@ function renderLogin(){
       <div class="auth-brand"><span class="ring">${RINGSVG}</span> Painel da Noiva</div>
       <h1>Bem-vinda ao seu Painel</h1>
       <p class="sub">Entre para continuar organizando o seu grande dia.</p>
+      ${sb?"":'<div class="alert warn" style="margin-bottom:14px">Servidor não configurado. Cole a URL e a chave do Supabase no código (SUPA_URL / SUPA_KEY).</div>'}
       <div class="form-err" id="err">${svg("warn",16)}<span></span></div>
       <form id="loginForm">
         <div class="field"><label>E-mail</label>
@@ -1979,6 +1937,7 @@ function renderSignup(){
     if(String(fd.get("password")).length<6) return showErr("A senha deve ter ao menos 6 caracteres.");
     const r=await createBride(fd.get("email"), fd.get("password"));
     if(!r.ok) return showErr(r.msg);
+    if(r.needConfirm) return showErr("Conta criada! Confirme pelo e-mail e depois faça login.");
     go("#/painel");
   };
 }
@@ -2668,25 +2627,26 @@ VIEWS.config={ title:()=>"Configurações", render(outlet,ctx){
   const rm=q("#cfgRm"); if(rm)rm.onclick=()=>{ wed.photo=null; ctx.saveWed(); ctx.refresh(); };
   q("#cfgSaveProfile").onclick=()=>{ wed.brideName=q("#cfgName").value.trim()||wed.brideName; ctx.saveWed(); toast("Informações salvas com sucesso."); ctx.refresh(); };
   q("#cfgSaveWed").onclick=()=>{ wed.partnerName=q("#cfgPartner").value.trim(); wed.date=q("#cfgDate").value; wed.budgetTotal=+q("#cfgBudget").value||0; wed.city=q("#cfgCity").value.trim(); wed.state=q("#cfgState").value.trim().toUpperCase(); ctx.saveWed(); toast("Casamento atualizado. Indicadores recalculados."); ctx.refresh(); };
-  q("#cfgPw").onclick=async()=>{ const cur=q("#pwCur").value,nw=q("#pwNew").value,cf=q("#pwConf").value;
-    if(await sha256(cur)!==user.passwordHash)return toast("Senha atual incorreta.","err");
+  q("#cfgPw").onclick=async()=>{ const nw=q("#pwNew").value,cf=q("#pwConf").value;
     if(nw.length<6)return toast("Nova senha muito curta (mín. 6).","err");
     if(nw!==cf)return toast("A confirmação não coincide.","err");
-    user.passwordHash=await sha256(nw); saveUser(user); toast("Senha alterada com sucesso."); q("#pwCur").value=q("#pwNew").value=q("#pwConf").value=""; };
-  q("#loadDemo").onclick=()=>confirmModal("Carregar dados de demonstração?","Isto substituirá os dados atuais deste painel por um exemplo.",()=>{ seedDemo(user.id); const w=getWedding(user.id); w.onboarded=true; saveWedding(user.id,w); toast("Demonstração carregada."); go("#/painel"); },"Carregar");
+    try{ const {error}=await sb.auth.updateUser({password:nw}); if(error)throw error; toast("Senha alterada com sucesso."); q("#pwCur").value=q("#pwNew").value=q("#pwConf").value=""; }catch(e){ toast("Não foi possível alterar a senha.","err"); } };
+  q("#loadDemo").onclick=()=>confirmModal("Carregar dados de demonstração?","Isto substituirá os dados atuais deste painel por um exemplo.",()=>{ const dd=buildDemoData(); CUR.data=dd.data; CUR.wed=Object.assign(CUR.wed||{},dd.wed,{onboarded:true}); saveData(user.id,CUR.data); saveWedding(user.id,CUR.wed); toast("Demonstração carregada."); go("#/painel"); },"Carregar");
   q("#clearData").onclick=()=>confirmModal("Limpar todos os dados?","Todos os convidados, fornecedores, pagamentos e demais registros deste painel serão apagados. Esta ação não pode ser desfeita.",()=>{ saveData(user.id,blankData()); const w=getWedding(user.id); w.budgetTotal=0; saveWedding(user.id,w); toast("Dados limpos."); go("#/painel"); });
 }};
 
 /* ==================================================================
    ADMIN
    ================================================================== */
-function renderAdmin(user){
-  const users=DB.get(K.users,[]);
-  const stat=s=>users.filter(u=>u.accessStatus===s).length;
+async function renderAdmin(user){
+  let list=[];
+  try{ const r=await sb.from("profiles").select("*").order("created_at",{ascending:true}); list=r.data||[]; }catch(e){ console.error(e); }
+  const stat=st=>list.filter(u=>(u.status||"active")===st).length;
+  const isOwner=u=>(u.email||"").toLowerCase()===OWNER_EMAIL.toLowerCase();
   q("#root").innerHTML=`<div class="app on">
     <aside class="sidebar" id="sidebar">
       <div class="sb-brand"><span class="ring">${RINGSVG}</span> Administração</div>
-      <div class="sb-profile"><div class="sb-avatar admin-badge">${svg("shield",26)}</div><div class="nm">${esc(user.email.split("@")[0])}</div><div class="days">Conta do dono</div></div>
+      <div class="sb-profile"><div class="sb-avatar admin-badge">${svg("shield",26)}</div><div class="nm">${esc((user.email||"").split("@")[0])}</div><div class="days">Conta do dono</div></div>
       <nav class="sb-nav">
         <a class="nav-item active">${svg("chart",20,"ic")}<span>Visão geral</span></a>
         <a class="nav-item" href="#/painel">${svg("home",20,"ic")}<span>Meu painel</span></a>
@@ -2696,58 +2656,37 @@ function renderAdmin(user){
     <div class="main"><header class="topbar"><div class="tb-left"><h1>Administração — Painel da Noiva</h1></div></header>
     <main class="content" id="viewOutlet">
       <div class="grid g-4 stagger" style="margin-bottom:20px">
-        <div class="card"><div class="stat-lbl">Total de contas</div><div class="stat-num" data-count="${users.length}">0</div></div>
+        <div class="card"><div class="stat-lbl">Total de contas</div><div class="stat-num" data-count="${list.length}">0</div></div>
         <div class="card"><div class="stat-lbl">Ativas</div><div class="stat-num" data-count="${stat("active")}" style="color:var(--sage)">0</div></div>
         <div class="card"><div class="stat-lbl">Inativas</div><div class="stat-num" data-count="${stat("blocked")}" style="color:var(--red)">0</div></div>
-        <div class="card"><div class="stat-lbl">Pendentes</div><div class="stat-num" data-count="${stat("pending_activation")}" style="color:var(--amber-t)">0</div></div>
+        <div class="card"><div class="stat-lbl">Total noivas</div><div class="stat-num" data-count="${list.filter(u=>!isOwner(u)).length}" style="color:var(--gold)">0</div></div>
       </div>
-      <div class="card"><div class="card-head"><h3>Contas cadastradas</h3><button class="btn btn-primary btn-sm" data-newuser>${svg("plus",15)} Criar acesso</button></div>
+      <div class="card"><div class="card-head"><h3>Contas cadastradas</h3></div>
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>E-mail</th><th>Papel</th><th>Cadastro</th><th>Último acesso</th><th>Status</th><th></th></tr></thead><tbody>
-        ${users.map(u=>{ const w=getWedding(u.id);
-          return `<tr><td><b>${esc(u.email)}</b>${w.brideName?`<div class="stat-lbl">${esc(w.brideName)}${w.date?" · "+fmtDate(w.date):""}</div>`:""}</td>
-          <td>${u.role==="admin"?'<span class="badge-s admin-badge" style="color:#fff">Dono</span>':'<span class="badge-s s-gray">Noiva</span>'}</td>
-          <td>${fmtDate(new Date(u.createdAt).toISOString().slice(0,10))}</td>
-          <td>${u.lastLoginAt?fmtDate(new Date(u.lastLoginAt).toISOString().slice(0,10)):"—"}</td>
-          <td>${u.accessStatus==="active"?'<span class="badge-s s-green">Ativa</span>':u.accessStatus==="blocked"?'<span class="badge-s s-red">Inativa</span>':'<span class="badge-s s-amber">Pendente</span>'}</td>
-          <td><div class="row-actions">${u.role!=="admin"?(u.accessStatus==="blocked"
+        ${list.map(u=>{ const owner=isOwner(u); const st=u.status||"active";
+          const cad=u.created_at?fmtDate(new Date(u.created_at).toISOString().slice(0,10)):"—";
+          const last=u.last_login?fmtDate(new Date(u.last_login).toISOString().slice(0,10)):"—";
+          return `<tr><td><b>${esc(u.email||"—")}</b></td>
+          <td>${owner?'<span class="badge-s admin-badge" style="color:#fff">Dono</span>':'<span class="badge-s s-gray">Noiva</span>'}</td>
+          <td>${cad}</td><td>${last}</td>
+          <td>${st==="active"?'<span class="badge-s s-green">Ativa</span>':'<span class="badge-s s-red">Inativa</span>'}</td>
+          <td><div class="row-actions">${owner?'<span class="muted" style="font-size:.8rem">—</span>':(st==="blocked"
             ?`<button class="btn btn-sm btn-soft" data-unblock="${u.id}">Ativar</button>`
-            :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Desativar</button>`)+`<button class="icon-btn danger" data-remove="${u.id}" title="Excluir conta">`+svg("trash",15)+`</button>`:'<span class="muted" style="font-size:.8rem">—</span>'}</div></td></tr>`; }).join("")}
+            :`<button class="btn btn-sm btn-danger" data-block="${u.id}">Desativar</button>`)+`<button class="icon-btn danger" data-remove="${u.id}" title="Excluir conta">`+svg("trash",15)+`</button>`}</div></td></tr>`; }).join("")}
         </tbody></table></div></div>
-      <div class="alert info" style="margin-top:16px">${svg("shield",16)}<div><b>Link de cadastro para quem pagou:</b> compartilhe o endereço do seu site com <b>#cadastro</b> no final — ex.: <b>seusite.com/paineldanoiva/#cadastro</b>. Só quem tiver esse link consegue criar uma conta. Você também pode criar direto no botão “Criar acesso”. <br><span style="opacity:.85">Obs.: sem servidor, cada conta fica salva no navegador onde foi criada; o controle central de todas as contas vem na etapa de backend.</span></div></div>
+      <div class="alert info" style="margin-top:16px">${svg("shield",16)}<div><b>Link de cadastro:</b> compartilhe o endereço do seu site com <b>#cadastro</b> no final. Agora tudo fica salvo na nuvem — os cadastros aparecem aqui de qualquer aparelho. Para desativar (reembolso) use “Desativar”; “Excluir” remove os dados do cliente.</div></div>
     </main></div></div>`;
   animateVisuals(q("#viewOutlet"));
-  qa("[data-block]").forEach(b=>b.onclick=()=>{ confirmModal("Desativar acesso?","Use isto se o cliente pediu reembolso/estorno. A conta não conseguirá entrar, mas os dados ficam preservados caso reative depois.",()=>{ const u=users.find(x=>x.id===b.dataset.block); u.accessStatus="blocked"; saveUser(u); toast("Acesso desativado."); renderAdmin(user); },"Desativar"); });
-  qa("[data-unblock]").forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.id===b.dataset.unblock); u.accessStatus="active"; saveUser(u); toast("Acesso reativado."); renderAdmin(user); });
-  const _nu=q("[data-newuser]"); if(_nu)_nu.onclick=()=>{ formModal({title:"Criar acesso para novo cliente", fields:[
-    {key:"email",label:"E-mail do cliente",type:"email",required:true,placeholder:"cliente@email.com"},
-    {key:"password",label:"Senha inicial",type:"text",required:true,placeholder:"mínimo 6 caracteres"},
-    {key:"active",label:"Ativar acesso agora?",type:"select",options:[["1","Sim, ativar"],["0","Não, deixar inativo"]]}
-  ], values:{active:"1"}, submitLabel:"Criar acesso", onSubmit:async o=>{
-    if(!/.+@.+\..+/.test(o.email||"")) return toast("Informe um e-mail válido.","err");
-    if((o.password||"").length<6) return toast("A senha precisa ter ao menos 6 caracteres.","err");
-    const r=await adminCreateUser(o.email,o.password,o.active==="1");
-    if(!r.ok) return toast(r.msg,"err");
-    closeModal();
-    const cm=el("div",{class:"modal"});
-    cm.innerHTML=`<div class="modal-head"><h3>Acesso criado ✓</h3><button class="modal-x" data-x>&times;</button></div>
-      <div class="modal-body"><p class="muted" style="margin-bottom:12px">Envie estes dados para o cliente entrar:</p>
-      <div class="field"><label>E-mail</label><input readonly value="${esc(o.email)}"></div>
-      <div class="field"><label>Senha</label><input readonly value="${esc(o.password)}"></div>
-      <div class="alert warn" style="margin-top:6px">`+svg("warn",16)+`<div>O cliente precisa entrar <b>neste mesmo navegador/computador</b> enquanto não houver servidor. Em outro aparelho a conta ainda não existe.</div></div></div>
-      <div class="modal-foot"><button class="btn btn-primary" data-x>Entendi</button></div>`;
-    openModal(cm); qa("[data-x]",cm).forEach(b=>b.onclick=()=>{ closeModal(); renderAdmin(user); });
-  }}); };
-  qa("[data-remove]").forEach(b=>b.onclick=()=>{ const u=users.find(x=>x.id===b.dataset.remove);
-    confirmModal("Excluir conta?","Isto apaga a conta \""+u.email+"\" e todos os dados dela. Não pode ser desfeito.",()=>{
-      DB.set(K.users, users.filter(x=>x.id!==u.id)); DB.del(K.wedding(u.id)); DB.del(K.data(u.id));
-      toast("Conta excluída."); renderAdmin(user); }); });
+  qa("[data-block]").forEach(b=>b.onclick=()=>{ confirmModal("Desativar acesso?","O cliente não conseguirá entrar (use em caso de reembolso). Os dados são preservados.",async()=>{ try{ await sb.from("profiles").update({status:"blocked"}).eq("id",b.dataset.block);}catch(e){} toast("Acesso desativado."); renderAdmin(user); },"Desativar"); });
+  qa("[data-unblock]").forEach(b=>b.onclick=async()=>{ try{ await sb.from("profiles").update({status:"active"}).eq("id",b.dataset.unblock);}catch(e){} toast("Acesso reativado."); renderAdmin(user); });
+  qa("[data-remove]").forEach(b=>b.onclick=()=>{ confirmModal("Excluir conta?","Isto apaga o painel e os dados deste cliente. Não pode ser desfeito.",async()=>{ try{ await sb.from("panels").delete().eq("user_id",b.dataset.remove); await sb.from("profiles").delete().eq("id",b.dataset.remove);}catch(e){} toast("Conta excluída."); renderAdmin(user); }); });
 }
 
 /* ==================================================================
    INIT
    ================================================================== */
 (async function init(){
-  await ensureSeed();
+  try{ if(sb){ const {data:{session}}=await sb.auth.getSession(); if(session){ await loadCurrent(); } } }catch(e){ console.error(e); }
   if(!location.hash) location.hash="#/login";
   router();
 })();
