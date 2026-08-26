@@ -1850,7 +1850,7 @@ function router(){
   const hash=location.hash||"#/login";
   const user=currentUser();
 
-  if(hash.startsWith("#/login")){ return user? go("#/painel") : renderLogin(); }
+  if(hash.startsWith("#/login")){ return renderLogin(); }
   if(hash.startsWith("#/cadastro")){ return user? go("#/painel") : renderSignup(); }
   if(hash.startsWith("#/recuperar")){ return renderForgot(); }
 
@@ -1879,6 +1879,7 @@ const RINGSVG=`<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="30" r="1
 function shell(html){ q("#root").innerHTML=html; }
 
 function renderLogin(){
+  const cu=currentUser();
   shell(`<div class="auth">
     <div class="auth-art"><span class="blob b1"></span><span class="blob b2"></span>
       <div class="auth-quote"><div class="ring">${RINGSVG}</div>
@@ -1888,6 +1889,7 @@ function renderLogin(){
     </div>
     <div class="auth-form-wrap"><div class="auth-card">
       <div class="auth-brand"><span class="ring">${RINGSVG}</span> Painel da Noiva</div>
+      ${cu?`<div class="demo-hint" style="border-style:solid;border-color:var(--sage);background:var(--sage-bg);color:#5f7a51;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px"><span>Você já está conectada como <b>${esc(cu.email)}</b>.</span><a class="link" data-continue href="#" style="white-space:nowrap">Continuar &rarr;</a></div>`:""}
       <h1>Bem-vinda ao seu Painel</h1>
       <p class="sub">Entre para continuar organizando o seu grande dia.</p>
       <div class="form-err" id="err">${svg("warn",16)}<span></span></div>
@@ -1908,6 +1910,7 @@ function renderLogin(){
     </div></div>
   </div>`);
   wirePwToggle();
+  var _cont=q("[data-continue]"); if(_cont)_cont.onclick=function(ev){ ev.preventDefault(); var u=currentUser(); go(u&&u.role==="admin"?"#/admin":"#/painel"); };
   q("#loginForm").onsubmit=async e=>{
     e.preventDefault(); const fd=new FormData(e.target);
     const btn=q("button[type=submit]",e.target); btn.disabled=true; btn.textContent="Entrando...";
@@ -2722,10 +2725,10 @@ function renderAdmin(user){
   var back=document.getElementById("pnBackSite");
   var loaded=false;
   function ensure(){ if(loaded)return; frame.srcdoc="<!DOCTYPE html>"+tpl.innerHTML; loaded=true; }
-  ensure(); // carrega o painel em segundo plano assim que a pagina abre
+  ensure();
   function isAuth(h){ return !h||h==="#"||h.indexOf("#/login")===0||h.indexOf("#/cadastro")===0||h.indexOf("#/recuperar")===0; }
   function syncBack(){ try{ back.style.display=isAuth(frame.contentWindow.location.hash)?"inline-flex":"none"; }catch(e){ back.style.display="none"; } }
-  function routeLogin(){ try{ var w=frame.contentWindow; if(w&&w.location&&isAuth(w.location.hash)) w.location.hash="#/login"; }catch(e){} syncBack(); }
+  function routeLogin(){ try{ var w=frame.contentWindow; if(w&&w.location){ w.location.hash="#/login"; } }catch(e){} syncBack(); }
   function openApp(){ ensure(); overlay.classList.add("on"); document.body.style.overflow="hidden";
     try{ if(frame.contentDocument&&frame.contentDocument.readyState==="complete"){ routeLogin(); return; } }catch(e){}
     frame.addEventListener("load", routeLogin, {once:true});
