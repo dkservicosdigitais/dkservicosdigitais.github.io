@@ -1373,6 +1373,24 @@ table.tbl tr:hover td{background:#FCF9F5}
 .ia-shell{text-align:center;padding:40px}
 .ia-orb{width:74px;height:74px;border-radius:50%;margin:0 auto 20px;background:radial-gradient(circle at 35% 30%,#F3D9D2,#D08B84);box-shadow:0 12px 30px -10px rgba(208,139,132,.6);animation:float 4s ease-in-out infinite}
 .soon{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);background:var(--cream);border:1px solid var(--gold-soft);padding:4px 10px;border-radius:999px}
+.ring-hold{position:relative;width:96px;height:96px;flex:0 0 auto}
+.ring-hold .rin{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--serif);font-size:1.3rem;color:var(--rose-d)}
+.donut-hold{position:relative;width:150px;height:150px;flex:0 0 auto}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center b{font-family:var(--serif);font-size:1.9rem;line-height:1;color:var(--ink)}
+.donut-center span{font-size:.72rem;color:var(--nude);margin-top:2px}
+.pay-ic{width:38px;height:38px;border-radius:11px;background:var(--rose-bg);display:grid;place-items:center;color:var(--rose-d);flex:0 0 auto}
+.ia-prev{display:flex;flex-direction:column;gap:9px}
+.ia-bubble{background:var(--rose-bg);border:1px solid var(--rose-soft);border-radius:14px;padding:12px 14px;font-size:.85rem;line-height:1.45;color:var(--ink-soft)}
+.ia-chip{text-align:left;width:100%;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 13px;font-size:.82rem;color:var(--ink);cursor:pointer;transition:.2s;font-family:inherit}
+.ia-chip:hover{border-color:var(--rose-soft);background:var(--cream);transform:translateX(2px)}
+.ia-inp{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:6px 6px 6px 14px;margin-top:2px;background:#fff}
+.ia-inp input{border:0;flex:1;font-size:.85rem;background:none;outline:none;font-family:inherit}
+.ia-inp .snd{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#C98A86,#B87873);color:#fff;border:0;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+.app-foot{border-top:1px solid var(--line);margin-top:14px;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--nude);font-size:.82rem}
+.app-foot .cbadge{display:inline-grid;place-items:center;width:19px;height:19px;border:1.4px solid var(--nude);border-radius:50%;font-size:.62rem;font-weight:700;margin-right:7px;vertical-align:-3px}
+.app-foot .fr{font-family:var(--serif);font-style:italic;font-size:.98rem;color:var(--rose-d)}
+@media(max-width:640px){.app-foot{padding:18px 16px;justify-content:center;text-align:center}.app-foot .fr{display:none}}
 
 /* alert */
 .alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:12px;font-size:.9rem}
@@ -2142,6 +2160,7 @@ function renderApp(user, slug){
         </div>
       </header>
       <main class="content" id="viewOutlet"></main>
+      <footer class="app-foot"><div><span class="cbadge">C</span> 2026 DK SERVIÇOS DIGITAIS os direitos reservados.</div><div class="fr">Organize, planeje e viva cada momento do seu sonho.</div></footer>
     </div>
   </div>`;
 
@@ -2242,7 +2261,7 @@ VIEWS[""]={
     const {wed,d}=ctx;
     const days=daysUntil(wed.date);
     const prog=calcProgress(wed,d);
-    const sup=calcSuppliers(d), g=calcGuests(d), tasks=calcTasks(d), payAgg=calcPayments(d), bud=calcBudget(wed,d);
+    const g=calcGuests(d), bud=calcBudget(wed,d);
     const isEmpty = d.guests.length===0 && d.suppliers.length===0 && d.tasks.length===0 && !wed.budgetTotal;
 
     let countInner;
@@ -2257,25 +2276,25 @@ VIEWS[""]={
     ${isEmpty?`<div class="alert info" style="margin-bottom:18px">${svg("heart",18)}<div><b>Seu painel está pronto!</b> Comece adicionando suas primeiras informações — os números e gráficos se atualizam sozinhos conforme você organiza.</div></div>`:""}
     <div class="grid g-4 stagger" style="margin-bottom:18px">
       <div class="card"><div class="countdown"><div class="cal">${svg("calendar",26)}</div>${countInner}</div></div>
-      <div class="card"><div class="ring-card">${ringSVG(prog)}
+      <div class="card"><div class="ring-card"><div class="ring-hold">${ringSVG(prog)}<div class="rin" data-count="${prog}" data-suffix="%">0%</div></div>
         <div><div class="ring-pct" data-count="${prog}" data-suffix="%">0%</div><div class="stat-lbl">do casamento organizado</div>
-        <div style="font-size:.8rem;color:var(--rose-d);margin-top:4px">${progressMsg(prog)}</div></div></div></div>
+        <div style="font-size:.82rem;color:var(--rose-d);margin-top:4px">${progressMsg(prog)}</div></div></div></div>
       <div class="card"><div class="card-head"><h3 style="font-size:1.05rem">Orçamento</h3><span class="ic">${svg("wallet",18)}</span></div>
-        <div class="stat-num" data-count="${wed.budgetTotal||0}" data-money="1">R$ 0</div><div class="stat-lbl">total</div>
-        <div style="display:flex;gap:18px;margin-top:8px"><div><b style="font-family:var(--serif);font-size:1.15rem;color:var(--sage)">${BRL(bud.paid)}</b><div class="stat-lbl">pago</div></div><div><b style="font-family:var(--serif);font-size:1.15rem;color:var(--rose-d)">${BRL(bud.available)}</b><div class="stat-lbl">disponível</div></div></div></div>
+        <div class="stat-num" data-count="${wed.budgetTotal||0}" data-money="1">R$ 0</div><div class="stat-lbl">Total</div>
+        <div style="margin-top:10px"><b style="font-family:var(--serif);font-size:1.45rem;color:var(--sage)">${BRL(bud.paid)}</b><div class="stat-lbl">Pago até agora</div></div></div>
       <div class="card"><div class="card-head"><h3 style="font-size:1.05rem">Convidados</h3><span class="ic">${svg("users",18)}</span></div>
-        <div class="stat-num" data-count="${g.total}">0</div><div class="stat-lbl">total de convidados</div>
-        <div style="display:flex;gap:16px;margin-top:8px"><div><b style="color:#5f7a51;font-family:var(--serif);font-size:1.2rem">${g.confirmed}</b><div class="stat-lbl">confirmados</div></div>
-        <div><b style="color:var(--amber-t);font-family:var(--serif);font-size:1.2rem">${g.waiting}</b><div class="stat-lbl">aguardando</div></div></div></div>
+        <div class="stat-num" data-count="${g.total}">0</div><div class="stat-lbl">Total de convidados</div>
+        <div style="display:flex;gap:16px;margin-top:8px"><div><b style="color:#5f7a51;font-family:var(--serif);font-size:1.2rem">${g.confirmed}</b><div class="stat-lbl">Confirmados</div></div>
+        <div><b style="color:var(--amber-t);font-family:var(--serif);font-size:1.2rem">${g.waiting}</b><div class="stat-lbl">Aguardando</div></div></div></div>
     </div>
 
     <div class="grid g-3 stagger" style="margin-bottom:18px">
-      <div class="card"><div class="card-head"><h3>Checklist</h3><a class="card-link" href="#/painel/checklist">Ver todas</a></div>
+      <div class="card"><div class="card-head"><h3>Checklist Inteligente</h3><a class="card-link" href="#/painel/checklist">Ver todas</a></div>
         ${dashChecklist(d)}</div>
       <div class="card"><div class="card-head"><h3>Pagamentos</h3><a class="card-link" href="#/painel/pagamentos">Ver todos</a></div>
         ${dashPayments(d)}</div>
       <div class="card"><div class="card-head"><h3>Convidados</h3><a class="card-link" href="#/painel/convidados">Gerenciar</a></div>
-        ${g.total?`<div class="donut-wrap">${donut}<div class="legend">
+        ${g.total?`<div class="donut-wrap"><div class="donut-hold">${donut}<div class="donut-center"><b>${g.total}</b><span>Total</span></div></div><div class="legend">
           <div><span class="k" style="background:#8FA47E"></span><b>${g.confirmed}</b> Confirmados</div>
           <div><span class="k" style="background:#DBC79E"></span><b>${g.waiting}</b> Aguardando</div>
           <div><span class="k" style="background:#EBD2CC"></span><b>${g.declined}</b> Não irão</div></div></div>`
@@ -2284,28 +2303,39 @@ VIEWS[""]={
 
     <div class="grid g-3 stagger">
       <div class="card"><div class="card-head"><h3>Cronograma do Dia</h3><a class="card-link" href="#/painel/cronograma">Ver completo</a></div>
-        ${d.timeline.length?`<div class="tl">${d.timeline.slice(0,5).map(t=>`<div class="tl-item"><div class="time">${esc(t.time)}</div><div class="ev">${esc(t.title)}</div>${t.place?`<div class="pl">${esc(t.place)}</div>`:""}</div>`).join("")}</div>`
+        ${d.timeline.length?`<div class="tl">${[...d.timeline].sort((a,b)=>(a.time||"").localeCompare(b.time||"")).slice(0,5).map(t=>`<div class="tl-item"><div class="time">${esc(t.time)}</div><div class="ev">${esc(t.title)}</div>${t.place?`<div class="pl">${esc(t.place)}</div>`:""}</div>`).join("")}</div>`
           :`<p class="muted" style="padding:14px 0">Monte o roteiro do grande dia. <a class="link" href="#/painel/cronograma">Adicionar</a></p>`}</div>
-      <div class="card"><div class="card-head"><h3>IA da Noiva</h3><span class="soon">Em breve</span></div>
-        <div class="ia-shell" style="padding:20px 8px"><div class="ia-orb" style="width:56px;height:56px"></div>
-        <p class="muted">Sua assistente inteligente será conectada aqui para responder sobre o seu casamento.</p></div></div>
-      <div class="card"><div class="card-head"><h3>Galeria</h3><a class="card-link" href="#/painel/galeria">Ver todas</a></div>
+      <div class="card"><div class="card-head"><h3>${svg("heart",18)} IA da Noiva</h3></div>
+        <div class="ia-prev">
+          <div class="ia-bubble">Olá, ${esc(wed.brideName||"noiva")}! Sou sua IA da Noiva e estou aqui para te ajudar em cada detalhe. O que você precisa saber ou organizar hoje?</div>
+          <button class="ia-chip" data-ia>O que ainda falta resolver?</button>
+          <button class="ia-chip" data-ia>Quantas pessoas ainda não responderam?</button>
+          <button class="ia-chip" data-ia>Tenho ${BRL(bud.available)} disponíveis. O que preciso pagar?</button>
+          <div class="ia-inp"><input placeholder="Pergunte qualquer coisa..." data-ia readonly><button class="snd" data-ia>${svg("send",16)}</button></div>
+        </div></div>
+      <div class="card"><div class="card-head"><h3>Galeria do Casamento</h3><a class="card-link" href="#/painel/galeria">Ver todas</a></div>
         ${d.gallery.length?`<div class="gal" style="grid-template-columns:repeat(3,1fr)">${d.gallery.slice(0,6).map(im=>`<div class="tile"><img src="${im.src}"></div>`).join("")}</div>`
           :`<p class="muted" style="padding:14px 0">Guarde suas inspirações e fotos. <a class="link" href="#/painel/galeria">Enviar imagens</a></p>`}</div>
     </div>`;
+
+    qa("[data-dtoggle]",outlet).forEach(b=>b.onclick=()=>{ const x=d.tasks.find(i=>i.id===b.dataset.dtoggle); if(!x)return; x.status=x.status==="concluida"?"pendente":"concluida"; ctx.save(); ctx.refresh(); });
+    qa("[data-ia]",outlet).forEach(b=>b.addEventListener("click",()=>toast("A IA da Noiva chega em breve 💍")));
   }
 };
 function dashChecklist(d){
   const t=calcTasks(d); if(!t.total) return `<p class="muted" style="padding:10px 0">Nenhuma tarefa ainda. <a class="link" href="#/painel/checklist">Começar checklist</a></p>`;
-  const next=d.tasks.filter(x=>x.status!=="concluida").slice(0,5);
-  return `<div class="progress" style="margin-bottom:6px"><i data-w="${t.pct}"></i></div>
-    <div class="stat-lbl" style="margin-bottom:8px">${t.done} de ${t.total} tarefas concluídas</div>
-    ${next.length?next.map(x=>`<div class="task"><span class="box"></span><div><div class="tt">${esc(x.title)}</div><div class="meta">${esc(x.category)}${x.due?" · vence "+fmtDate(x.due):""}</div></div></div>`).join(""):`<p class="muted" style="padding:8px 0">Tudo concluído! ❤️</p>`}`;
+  const next=d.tasks.filter(x=>x.status!=="concluida");
+  const list=(next.length?next:d.tasks).slice(0,5);
+  return `<div class="stat-lbl" style="margin-bottom:8px">Próximas tarefas</div>
+    ${list.map(x=>`<div class="task ${x.status==="concluida"?"done":""}"><span class="box" data-dtoggle="${x.id}">${x.status==="concluida"?svg("check",13).replace(IC.check,'<path d="M20 6 9 17l-5-5"/>'):""}</span>
+      <div style="flex:1"><div class="tt">${esc(x.title)}</div><div class="meta" style="color:var(--rose-d)">${x.due?"Vencimento: "+fmtDate(x.due):esc(x.category)}</div></div></div>`).join("")}`;
 }
 function dashPayments(d){
   if(!d.payments.length) return `<p class="muted" style="padding:10px 0">Nenhum pagamento cadastrado. <a class="link" href="#/painel/pagamentos">Adicionar</a></p>`;
+  const PAYIC={Buffet:"gift","Decoração":"flower",Flores:"flower","Fotógrafo":"camera",Filmagem:"camera",Vestido:"gift",DJ:"music",Banda:"music","Música":"music",Bolo:"gift",Doces:"gift",Cerimonial:"handshake","Espaço":"home",Transporte:"card",Convites:"doc",Lembrancinhas:"gift"};
   const up=[...d.payments].sort((a,b)=>(a.due||"").localeCompare(b.due||"")).slice(0,5);
   return up.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)">
+    <span class="pay-ic">${svg(PAYIC[p.category]||"card",18)}</span>
     <div style="flex:1"><div style="font-weight:600;font-size:.9rem">${esc(p.description)}</div><div class="stat-lbl">${p.due?fmtDate(p.due):"sem data"}</div></div>
     <div style="font-family:var(--serif);font-size:1.05rem">${BRL(p.value)}</div>${badge(p.status)}</div>`).join("");
 }
