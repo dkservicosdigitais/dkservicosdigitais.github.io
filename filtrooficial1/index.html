@@ -95,14 +95,23 @@
     #loadingText{animation:carregaLuz 1.5s ease-in-out infinite;}
     @keyframes carregaLuz{0%,100%{opacity:.6;text-shadow:0 0 8px rgba(255,255,255,0.4);}50%{opacity:1;text-shadow:0 0 20px rgba(255,255,255,0.9);}}
   
-/* >>> NOVO: Escurecimento + blur somente na PRÉVIA <<< */
+/* PRÉVIA: sem blur — o convidado vê a foto/vídeo nítidos.
+   Mantém apenas um leve gradiente na base para legibilidade dos botões. */
 #previewDim{
   position:absolute; inset:0;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(4px);
+  background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.45));
+  backdrop-filter:none;
   opacity:0; transition:opacity .28s ease;
-  pointer-events:none;
+  pointer-events:none; z-index:3;
 }
+/* Imagem da prévia da foto: ocupa todo o viewport, nítida, por cima do vídeo */
+#photoPreview{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; display:none; z-index:1; background:#000;
+}
+#photoPreview.show{ display:block; }
+/* Botões da prévia sempre por cima da foto/vídeo */
+.actionBar{ z-index:10 !important; }
 /* Brilho branco no botão Fechar */
 .btnClose{ box-shadow:0 0 26px rgba(255,255,255,.66); }
 </style>
@@ -407,6 +416,9 @@ header, header h1, header .chip {
         <!-- canvas compositor para vídeo (oculto) -->
         <canvas id="composer" width="1080" height="1920" style="display:none"></canvas>
 
+        <!-- prévia da foto capturada (mostra a foto real, nítida, antes de compartilhar) -->
+        <img id="photoPreview" alt="Prévia da foto" />
+
         <div class="overlay">
           <div class="frame" id="frame"></div>
 
@@ -515,6 +527,8 @@ header, header h1, header .chip {
         updateMirror();
         statusChip.textContent='Câmera pronta';
         actionBar.style.display='none';
+        // esconde a prévia da foto ao voltar para a câmera ao vivo
+        try{ const pp=document.getElementById('photoPreview'); if(pp){ pp.classList.remove('show'); pp.removeAttribute('src'); } }catch(e){}
         shutter.style.display='grid';       // <- garante que o botão aparece
         try{ await video.play(); }catch{}
       }catch(err){
@@ -561,9 +575,15 @@ header, header h1, header .chip {
       setTimeout(()=>{
         loadingScreen.classList.remove('show');
         loadingScreen.style.backgroundImage = '';
+        try{ video.pause(); }catch{}
+        // Mostra a FOTO REAL capturada (com a moldura), nítida, para o convidado ver
+        const photoPreview = document.getElementById('photoPreview');
+        if(photoPreview){
+          photoPreview.src = photoURL;
+          photoPreview.classList.add('show');
+        }
         actionBar.style.display='flex';
         statusChip.textContent='Prévia pronta';
-        try{ video.pause(); }catch{}
       }, 0);
     }
 
@@ -740,9 +760,17 @@ shutter.style.display='none';
     window.addEventListener('touchcancel', onPressCancel);
     window.addEventListener('mouseleave', onPressCancel);
 
-    // Fechar prévia
+    // Fechar prévia (voltar para tirar outra foto ou gravar outro vídeo)
     btnClose.addEventListener('click', async ()=>{
       actionBar.style.display='none';
+      // esconde a prévia da foto
+      const photoPreview = document.getElementById('photoPreview');
+      if(photoPreview){ photoPreview.classList.remove('show'); photoPreview.removeAttribute('src'); }
+      // limpa a prévia de vídeo, se houver
+      try{ video.pause(); }catch{}
+      try{ video.removeAttribute('src'); video.load(); }catch{}
+      video.loop=false; video.muted=true;
+      photoBlob=null; videoBlob=null;
       await startCamera();
       shutter.style.display='grid';
     });
