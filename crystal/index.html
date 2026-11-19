@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Galeria — Crystal · XV Anos</title>
+<title>Galeria — Crystal · 15 Anos</title>
+<meta property="og:title" content="Galeria — Crystal · 15 Anos">
+<meta property="og:description" content="Galeria do Convidado — Crystal · 15 Anos">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dkservicosdigitais.app.br/crystal/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:ital,wght@0,300;0,400;1,300&family=Caveat:wght@500&display=swap" rel="stylesheet">
@@ -299,7 +303,7 @@ body.revealed #introBlur{opacity:0;}
 <div id="world"></div>
 <div id="introBlur"></div>
 
-<div class="chrome" id="brand">CRYSTAL <em>·</em> XV ANOS</div>
+<div class="chrome" id="brand">CRYSTAL <em>·</em> XV</div>
 <button id="mute" class="chrome" title="Música">♪</button>
 <div class="chrome" id="hint">Arraste para explorar</div>
 <div class="chrome" id="year">DK Serviços Digitais © 2026</div>
@@ -546,15 +550,17 @@ bgm.volume = 0.45;
 let wantMusic = true;
 function tryPlay(){
   if (!wantMusic) return;
-  bgm.play().catch(() => {});
+  const result = bgm.play();
+  if (result && typeof result.then === 'function') {
+    result.then(() => {
+      const prompt = document.getElementById('musicStartPrompt');
+      if (prompt) prompt.remove();
+    }).catch(() => {});
+  }
 }
 /* toca imediatamente ao abrir; se o navegador bloquear, insiste e
    destrava no primeiro toque/tecla do visitante */
 tryPlay();
-const musicRetry = setInterval(() => {
-  if (!wantMusic || !bgm.paused){ clearInterval(musicRetry); return; }
-  tryPlay();
-}, 700);
 ['keydown','touchstart'].forEach(ev => addEventListener(ev, tryPlay));
 document.getElementById('mute').onclick = e => {
   wantMusic = !wantMusic;
@@ -573,7 +579,24 @@ const seq = [
 ];
 let timers = [ setTimeout(seq[0], 450), setTimeout(seq[1], 2100),
                setTimeout(seq[2], 3500), setTimeout(seq[3], 5800) ];
-intro.addEventListener('click', () => { timers.forEach(clearTimeout); seq.forEach(f => f()); });
+// Navegadores podem impedir som automático sem interação. Um toque na própria
+// abertura libera a música, sem precisar clicar no ícone de áudio.
+const musicStartPrompt = document.createElement('button');
+musicStartPrompt.id = 'musicStartPrompt';
+musicStartPrompt.type = 'button';
+musicStartPrompt.textContent = '♪ TOQUE PARA ENTRAR COM MÚSICA';
+musicStartPrompt.style.cssText = 'position:absolute;bottom:max(9vh,65px);left:50%;transform:translateX(-50%);z-index:55;background:rgba(5,5,5,.78);color:#f2ede3;border:1px solid #c9a96a;padding:15px 22px;font:12px Jost,sans-serif;letter-spacing:.15em;white-space:nowrap;cursor:pointer;box-shadow:0 0 20px rgba(201,169,106,.2)';
+intro.appendChild(musicStartPrompt);
+// Primeiro tenta tocar sem interação; se o navegador permitir, o botão desaparece.
+if (!bgm.paused) musicStartPrompt.remove();
+function enterWithMusic(){
+  tryPlay();
+  timers.forEach(clearTimeout);
+  seq.forEach(f => f());
+  musicStartPrompt.remove();
+}
+musicStartPrompt.addEventListener('click', enterWithMusic);
+intro.addEventListener('click', enterWithMusic);
 
 /* ============ LIGHTBOX ============ */
 const lb = document.getElementById('lb');
